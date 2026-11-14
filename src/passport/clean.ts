@@ -80,29 +80,43 @@ export function pick<T extends string>(value: unknown, allowed: readonly T[], fa
  */
 export function cleanStateName(value: unknown, fallback = DEFAULT_STATE_NAME): string {
   const name = cleanText(value, limits.stateName);
-  return name.trim() && !isRealCountry(name) ? name : fallback;
+  return name.trim() && !isReal(value, name) ? name : fallback;
+}
+
+/** Whether a text is a real country's name, as typed in full or as it reads once cut to length. */
+function isReal(value: unknown, shown: string): boolean {
+  return isRealCountry(shown) || isRealCountry(cleanText(value, 200));
+}
+
+/**
+ * Text for a place on a document where the issuer speaks: a title, an authority, a stamp's own
+ * lines. A real country's name on its own is turned away there too, and the fallback stands in.
+ * (A holder may still be called Jordan, or born in a town called Georgia.)
+ */
+export function cleanIssuerText(value: unknown, max: number, fallback = ''): string {
+  const text = cleanText(value, max, fallback);
+  return isReal(value, text) ? fallback : text;
 }
 
 function cleanTitles(value: unknown, fallback: [string, string]): [string, string] {
   const list = Array.isArray(value) ? value : [];
-  const first = cleanText(list[0], limits.title);
-  return [first.trim() ? first : fallback[0], cleanText(list[1], limits.title)];
+  const first = cleanIssuerText(list[0], limits.title);
+  return [first.trim() ? first : fallback[0], cleanIssuerText(list[1], limits.title)];
 }
 
 export function cleanStamp(value: unknown, calendar: Calendar | null, fallbackKind: StampKind = 'entry'): Stamp {
   const o = bag(value);
   const kind = pick(o.kind, stampKinds, fallbackKind);
   const base = defaultStamp(kind);
-  const top = cleanText(o.top, limits.stampLine, base.top);
   return {
     kind,
     shape: pick(o.shape, stampShapes, base.shape),
     border: pick(o.border, stampBorders, base.border),
     // A stamp can't claim a real country either.
-    top: isRealCountry(top) ? base.top : top,
-    label: cleanText(o.label, limits.stampLabel, base.label),
+    top: cleanIssuerText(o.top, limits.stampLine, base.top),
+    label: cleanIssuerText(o.label, limits.stampLabel, base.label),
     place: cleanText(o.place, limits.stampLine, base.place),
-    bottom: cleanText(o.bottom, limits.stampLine, base.bottom),
+    bottom: cleanIssuerText(o.bottom, limits.stampLine, base.bottom),
     date: cleanDate(o.date, calendar, base.date),
     dateStyle: pick(o.dateStyle, dateStyles, base.dateStyle),
     mark: pick(o.mark, stampMarks, base.mark),
@@ -153,7 +167,7 @@ export function cleanDesign(value: unknown): Design {
       number: cleanNumber(papers.number, base.papers.number),
       issued: date(papers.issued, base.papers.issued),
       years: whole(papers.years, MIN_VALID_YEARS, MAX_VALID_YEARS, base.papers.years),
-      authority: cleanText(papers.authority, limits.authority, base.papers.authority),
+      authority: cleanIssuerText(papers.authority, limits.authority, base.papers.authority),
       portrait: {
         avatar: pick(portrait.avatar, avatarIds, base.papers.portrait.avatar),
         skin: pick(portrait.skin, skinIds, base.papers.portrait.skin),
