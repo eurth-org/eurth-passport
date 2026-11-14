@@ -1,0 +1,319 @@
+/**
+ * Drawing: a design goes in, SVG text comes out. One function per document, and every part of
+ * the tool that shows a document (the editor, the downloads, the template pages, the tests)
+ * uses these same functions.
+ *
+ * The data page and both sides of the card end with the SPECIMEN overprint. That last line of
+ * each function is the rule; there is nothing to pass in that would change it.
+ */
+import { TEXT_DARK, coverInk, hexOf, mix, papers, printInks } from './colours';
+import { addYears, formatDate } from './dates';
+import { describeDocument, titleOf } from './describe';
+import { chipSymbol, contactPad, emblem } from './emblems';
+import { decorativeStrip, specimenOverprint, vectorOnly } from './fiction';
+import { isMoonVisa, MOON_STAMP_TEXT } from './fun';
+import type { Design, DocumentRef } from './model';
+import { drawPattern } from './patterns';
+import { drawPortrait } from './portraits';
+import { hashText, n, rng } from './random';
+import { NOTE_BOX, drawStamp, noteStamp, stampExtent } from './stamps';
+import { MONO, esc, svgOpen, text } from './svg';
+
+/** The size of each document, in drawing units. Booklet and card keep the proportions of real ones. */
+export const sizes = {
+  cover: { w: 352, h: 500 },
+  data: { w: 500, h: 352 },
+  card: { w: 476, h: 300 },
+  page: { w: 352, h: 500 },
+} as const;
+
+export interface RenderOptions {
+  /** The profile's arms, as SVG text. Used on the cover only if the design asks and they are pure vector drawing. */
+  arms?: string | null;
+  /** Makes ids unique where several drawings share one page. Letters, digits and hyphens. */
+  idPrefix?: string;
+  /** For a stamp on its own: on clear (the default) or on a patch of paper. */
+  ground?: 'clear' | 'paper';
+}
+
+const prefix = (o: RenderOptions): string => (o.idPrefix ?? 'pp').replace(/[^A-Za-z0-9-]/g, '') || 'pp';
+
+/** Whether the arms a caller offers will really be drawn on the cover. */
+export function armsUsed(design: Design, o: RenderOptions = {}): boolean {
+  return design.cover.arms && vectorOnly(o.arms);
+}
+
+/** An SVG as the address of a picture. Inside an image element the browser draws it and runs none of it. */
+export function svgDataUrl(svg: string): string {
+  return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+}
+
+function open(design: Design, ref: DocumentRef, w: number, h: number, o: RenderOptions): string {
+  return svgOpen({ width: w, height: h, title: titleOf(design, ref), desc: describeDocument(design, ref, { armsUsed: armsUsed(design, o) }) });
+}
+
+/** Either the profile's arms, as a picture, or one of our emblems, in a square of `size` centred on (cx, cy). */
+function device(design: Design, o: RenderOptions, cx: number, cy: number, size: number, fg: string, bg: string, opacity = 1): string {
+  const fade = opacity < 1 ? ` opacity="${n(opacity)}"` : '';
+  if (armsUsed(design, o)) {
+    return `<image href="${esc(svgDataUrl(o.arms!))}" x="${n(cx - size / 2)}" y="${n(cy - size / 2)}" width="${n(size)}" height="${n(size)}" preserveAspectRatio="xMidYMid meet"${fade}/>`;
+  }
+  return `<g transform="translate(${n(cx - size / 2)} ${n(cy - size / 2)}) scale(${n(size / 100)})"${fade}>${emblem(design.cover.emblem).draw(fg, bg)}</g>`;
+}
+
+/** The state's name on the cover: on one line, or on two when it is long. */
+function coverName(name: string, cx: number, foil: string): string {
+  const shown = name.trim().toUpperCase();
+  const words = shown.split(' ');
+  if (Array.from(shown).length <= 26 || words.length < 2) return text(shown, { x: cx, y: 88, size: 21, max: 296, min: 10, fill: foil, anchor: 'middle', spacing: 2 });
+  // Break at the space that leaves the two lines most alike in length.
+  let best = 1;
+  let bestGap = Infinity;
+  for (let i = 1; i < words.length; i++) {
+    const gap = Math.abs(words.slice(0, i).join(' ').length - words.slice(i).join(' ').length);
+    if (gap < bestGap) {
+      best = i;
+      bestGap = gap;
+    }
+  }
+  const line = (content: string, y: number): string => text(content, { x: cx, y, size: 17, max: 296, min: 9, fill: foil, anchor: 'middle', spacing: 1.6 });
+  return line(words.slice(0, best).join(' '), 76) + line(words.slice(best).join(' '), 100);
+}
+
+export function renderCover(design: Design, o: RenderOptions = {}): string {
+  const { w, h } = sizes.cover;
+  const { cover, state } = design;
+  const foil = coverInk(cover.colour, cover.foil);
+  const two = cover.titles[1].trim().length > 0;
+  const titleY = cover.chip ? (two ? 384 : 398) : two ? 404 : 420;
+  return (
+    open(design, { kind: 'cover' }, w, h, o) +
+    `<rect x="1" y="1" width="${w - 2}" height="${h - 2}" rx="16" fill="${cover.colour}"/>` +
+    coverName(state.name, w / 2, foil) +
+    device(design, o, w / 2, 236, 152, foil, cover.colour) +
+    text(cover.titles[0].toUpperCase(), { x: w / 2, y: titleY, size: 31, max: 296, min: 13, fill: foil, anchor: 'middle', spacing: 6 }) +
+    (two ? text(cover.titles[1].toUpperCase(), { x: w / 2, y: titleY + 30, size: 19, max: 296, min: 10, fill: foil, anchor: 'middle', spacing: 4 }) : '') +
+    (cover.chip ? chipSymbol(w / 2, 450, 54, foil) : '') +
+    `</svg>`
+  );
+}
+
+/** A label and its value, as on a form. */
+function field(label: string, value: string, x: number, y: number, max: number, ink: string, mono = false): string {
+  return (
+    text(label.toUpperCase(), { x, y, size: 6.4, fill: ink, spacing: 0.6, weight: 600, max }) +
+    text(value, { x, y: y + 15, size: 12.5, fill: TEXT_DARK, weight: 600, max, min: 7, family: mono ? MONO : undefined })
+  );
+}
+
+/** A signature that is nobody's: a line of loops shaped by the holder's name. */
+function signature(name: string, x: number, y: number, w: number, h: number, colour: string): string {
+  const random = rng(hashText(name) || 1);
+  const steps = random.int(6, 10);
+  const dx = (w * 0.82) / steps;
+  let d = `M${n(x + 2)} ${n(y + h * 0.62)}`;
+  for (let i = 0; i < steps; i++) {
+    const up = h * random.range(0.25, 0.6) * (i === 0 ? 1.5 : 1);
+    d += `q${n(dx * 0.3)} ${n(-up)} ${n(dx * 0.5)} ${n(random.range(-2, 2))}t${n(dx * 0.5)} ${n(random.range(-2.5, 2.5))}`;
+  }
+  d += `M${n(x)} ${n(y + h * 0.9)}q${n(w * 0.45)} ${n(-random.range(2, 7))} ${n(w * 0.92)} ${n(-random.range(0, 3))}`;
+  return `<path d="${d}" fill="none" stroke="${colour}" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"/>`;
+}
+
+/** A line of tiny lettering: the state's name, over and over. */
+function microtext(name: string, x: number, y: number, w: number, ink: string): string {
+  const unit = `${name.trim().toUpperCase()} · `;
+  const line = unit.repeat(Math.max(1, Math.ceil(w / 2.1 / Array.from(unit).length))).trim();
+  return `<text x="${n(x)}" y="${n(y)}" font-family="system-ui, Arial, sans-serif" font-size="3.2" letter-spacing=".3" textLength="${n(w)}" lengthAdjust="spacingAndGlyphs" fill="${ink}" fill-opacity=".8">${esc(line)}</text>`;
+}
+
+/** Paper, rounded at the corners, with the security pattern clipped to it. */
+function sheet(design: Design, w: number, h: number, radius: number, id: string, strength = 0.3): string {
+  const paper = hexOf(papers, design.papers.paper);
+  const ink = hexOf(printInks, design.papers.ink);
+  return (
+    `<clipPath id="${id}"><rect x="1" y="1" width="${w - 2}" height="${h - 2}" rx="${radius}"/></clipPath>` +
+    `<rect x="1" y="1" width="${w - 2}" height="${h - 2}" rx="${radius}" fill="${paper}" stroke="${mix(paper, ink, 0.35)}" stroke-width="1"/>` +
+    `<g clip-path="url(#${id})" fill="none" stroke="${ink}" stroke-width=".6" stroke-opacity="${strength}">${drawPattern(design.papers.pattern, w, h, design.papers.seed)}</g>`
+  );
+}
+
+function portraitFrame(design: Design, x: number, y: number, w: number, ink: string): string {
+  const paper = hexOf(papers, design.papers.paper);
+  const h = w * 1.25;
+  return (
+    `<rect x="${n(x)}" y="${n(y)}" width="${n(w)}" height="${n(h)}" fill="${mix(paper, ink, 0.14)}"/>` +
+    `<svg x="${n(x)}" y="${n(y)}" width="${n(w)}" height="${n(h)}" viewBox="0 0 100 125">${drawPortrait(design.papers.portrait)}</svg>` +
+    `<rect x="${n(x)}" y="${n(y)}" width="${n(w)}" height="${n(h)}" fill="none" stroke="${ink}" stroke-width="1"/>`
+  );
+}
+
+const holderName = (design: Design): string => `${design.holder.given.trim()} ${design.holder.surname.trim()}`.trim();
+
+export function renderDataPage(design: Design, o: RenderOptions = {}): string {
+  const { w, h } = sizes.data;
+  const { state, cover, holder, papers: p, calendar } = design;
+  const ink = hexOf(printInks, p.ink);
+  const paper = hexOf(papers, p.paper);
+  const expires = addYears(p.issued, p.years, calendar);
+  const titles = cover.titles.map((t) => t.trim()).filter(Boolean).join(' / ').toUpperCase();
+  const left = 156;
+  const right = 334;
+  return (
+    open(design, { kind: 'data' }, w, h, o) +
+    sheet(design, w, h, 10, `${prefix(o)}-dc`) +
+    device(design, o, 408, 172, 150, ink, paper, 0.12) +
+    text(state.name.toUpperCase(), { x: 20, y: 28, size: 12, max: 290, min: 7, fill: ink, weight: 700, spacing: 1 }) +
+    text(titles, { x: w - 20, y: 28, size: 12, max: 160, min: 6, fill: ink, weight: 700, spacing: 1.5, anchor: 'end' }) +
+    `<path d="M20 36H${w - 20}" stroke="${ink}" stroke-width=".8"/>` +
+    portraitFrame(design, 20, 48, 120, ink) +
+    field('Type', 'P', left, 54, 60, ink) +
+    field('Document no.', p.number.trim(), right, 54, 146, ink, true) +
+    field('Surname', holder.surname.trim(), left, 86, 324, ink) +
+    field('Given names', holder.given.trim(), left, 118, 324, ink) +
+    field('Nationality', state.demonym.trim(), left, 150, 166, ink) +
+    field('Date of birth', formatDate(holder.born, calendar), right, 150, 146, ink) +
+    field('Place of birth', holder.birthplace.trim(), left, 182, 324, ink) +
+    field('Date of issue', formatDate(p.issued, calendar), left, 214, 166, ink) +
+    field('Date of expiry', formatDate(expires, calendar), right, 214, 146, ink) +
+    field('Authority', p.authority.trim(), left, 246, 324, ink) +
+    text('HOLDER’S SIGNATURE', { x: 20, y: 214, size: 6.4, fill: ink, spacing: 0.6, weight: 600 }) +
+    signature(holderName(design), 20, 220, 120, 36, TEXT_DARK) +
+    microtext(state.name, 20, 276, w - 40, ink) +
+    decorativeStrip(12, 284, w - 24, 56, ink) +
+    specimenOverprint(w, h) +
+    `</svg>`
+  );
+}
+
+export function renderCardFront(design: Design, o: RenderOptions = {}): string {
+  const { w, h } = sizes.card;
+  const { state, card, holder, papers: p, calendar } = design;
+  const ink = hexOf(printInks, p.ink);
+  const paper = hexOf(papers, p.paper);
+  const expires = addYears(p.issued, p.years, calendar);
+  const titles = card.titles.map((t) => t.trim()).filter(Boolean).join(' / ').toUpperCase();
+  const left = 150;
+  const right = 318;
+  return (
+    open(design, { kind: 'cardFront' }, w, h, o) +
+    sheet(design, w, h, 16, `${prefix(o)}-fc`) +
+    device(design, o, 38, 32, 36, ink, paper) +
+    text(state.name.toUpperCase(), { x: 64, y: 28, size: 12.5, max: 390, min: 7, fill: ink, weight: 700, spacing: 1 }) +
+    text(titles, { x: 64, y: 44, size: 10, max: 390, min: 6, fill: ink, weight: 600, spacing: 2 }) +
+    `<path d="M20 56H${w - 20}" stroke="${ink}" stroke-width=".8"/>` +
+    portraitFrame(design, 20, 68, 112, ink) +
+    field('Surname', holder.surname.trim(), left, 76, 306, ink) +
+    field('Given names', holder.given.trim(), left, 108, 306, ink) +
+    field('Nationality', state.demonym.trim(), left, 140, 156, ink) +
+    field('Date of birth', formatDate(holder.born, calendar), right, 140, 138, ink) +
+    field('Card no.', p.number.trim(), left, 172, 156, ink, true) +
+    field('Date of expiry', formatDate(expires, calendar), right, 172, 138, ink) +
+    text('HOLDER’S SIGNATURE', { x: left, y: 206, size: 6.4, fill: ink, spacing: 0.6, weight: 600 }) +
+    signature(holderName(design), left, 210, 150, 34, TEXT_DARK) +
+    chipSymbol(w - 44, 228, 40, ink) +
+    microtext(state.name, 20, 284, w - 40, ink) +
+    specimenOverprint(w, h) +
+    `</svg>`
+  );
+}
+
+export function renderCardBack(design: Design, o: RenderOptions = {}): string {
+  const { w, h } = sizes.card;
+  const { state, holder, papers: p, calendar } = design;
+  const ink = hexOf(printInks, p.ink);
+  const paper = hexOf(papers, p.paper);
+  return (
+    open(design, { kind: 'cardBack' }, w, h, o) +
+    sheet(design, w, h, 16, `${prefix(o)}-bc`) +
+    device(design, o, 250, 104, 150, ink, paper, 0.12) +
+    field('Place of birth', holder.birthplace.trim(), 20, 34, 300, ink) +
+    field('Date of issue', formatDate(p.issued, calendar), 20, 70, 300, ink) +
+    field('Authority', p.authority.trim(), 20, 106, 300, ink) +
+    contactPad(w - 110, 34, 84) +
+    text('This card is a work of fiction.', { x: 20, y: 160, size: 9, fill: TEXT_DARK, weight: 600, max: 300 }) +
+    text(`Issued in the name of ${state.name.trim()}, which isn’t on any map.`, { x: 20, y: 174, size: 7.5, fill: TEXT_DARK, max: w - 40, min: 5 }) +
+    microtext(state.name, 20, 196, w - 40, ink) +
+    decorativeStrip(12, 206, w - 24, 78, ink) +
+    specimenOverprint(w, h) +
+    `</svg>`
+  );
+}
+
+/** Where the jacket stamp sits beside a Moon visa, in the stamp's own units. */
+const JACKET_OFFSET = { x: 26, y: 26 };
+
+/** One stamp on its own, with room for its turn. */
+export function renderStamp(design: Design, index: number, o: RenderOptions = {}): string {
+  const stamp = design.stamps[index];
+  const ref: DocumentRef = { kind: 'stamp', index };
+  if (!stamp) return `${svgOpen({ width: 100, height: 100, title: 'No such stamp', desc: 'No such stamp.' })}</svg>`;
+  const extent = stampExtent(stamp);
+  const moon = isMoonVisa(stamp);
+  const pad = 14;
+  const w = Math.ceil(extent.w + pad * 2 + (moon ? JACKET_OFFSET.x : 0));
+  const h = Math.ceil(extent.h + pad * 2 + (moon ? NOTE_BOX.h + JACKET_OFFSET.y : 0));
+  const cx = (extent.w + pad * 2) / 2;
+  const cy = (extent.h + pad * 2) / 2;
+  const ground = o.ground === 'paper' ? `<rect width="${w}" height="${h}" fill="${hexOf(papers, design.papers.paper)}"/>` : '';
+  return (
+    open(design, ref, w, h, o) +
+    ground +
+    drawStamp(stamp, cx, cy, { calendar: design.calendar, idPrefix: `${prefix(o)}-s${index}` }) +
+    (moon ? noteStamp(MOON_STAMP_TEXT, 'red', 4, cx + JACKET_OFFSET.x, cy + extent.h / 2 + JACKET_OFFSET.y) : '') +
+    `</svg>`
+  );
+}
+
+const PAGE_SCALE = 0.6;
+
+/** A visa page of the passport, with every stamp where it was pressed. */
+export function renderVisaPage(design: Design, o: RenderOptions = {}): string {
+  const { w, h } = sizes.page;
+  const ink = hexOf(printInks, design.papers.ink);
+  let stamps = '';
+  design.stamps.forEach((stamp, index) => {
+    const cx = 60 + (stamp.x / 100) * (w - 120);
+    const cy = 78 + (stamp.y / 100) * (h - 150);
+    stamps += drawStamp(stamp, cx, cy, { calendar: design.calendar, idPrefix: `${prefix(o)}-v${index}` }, PAGE_SCALE);
+    if (isMoonVisa(stamp)) stamps += noteStamp(MOON_STAMP_TEXT, 'red', 4, cx + JACKET_OFFSET.x * PAGE_SCALE, cy + (stampExtent(stamp).h / 2 + JACKET_OFFSET.y) * PAGE_SCALE, PAGE_SCALE);
+  });
+  return (
+    open(design, { kind: 'visaPage' }, w, h, o) +
+    sheet(design, w, h, 10, `${prefix(o)}-vc`, 0.2) +
+    text('VISAS', { x: w / 2, y: 30, size: 11, fill: ink, anchor: 'middle', weight: 700, spacing: 4, opacity: 0.8 }) +
+    text('7', { x: w / 2, y: h - 16, size: 10, fill: ink, anchor: 'middle', family: MONO, opacity: 0.8 }) +
+    stamps +
+    `</svg>`
+  );
+}
+
+/** Any document, by reference. */
+export function renderDocument(design: Design, ref: DocumentRef, o: RenderOptions = {}): string {
+  switch (ref.kind) {
+    case 'cover':
+      return renderCover(design, o);
+    case 'data':
+      return renderDataPage(design, o);
+    case 'cardFront':
+      return renderCardFront(design, o);
+    case 'cardBack':
+      return renderCardBack(design, o);
+    case 'stamp':
+      return renderStamp(design, ref.index, o);
+    default:
+      return renderVisaPage(design, o);
+  }
+}
+
+/** Every document a design has, in the order the tool lists them. */
+export function documentsOf(design: Design): DocumentRef[] {
+  return [
+    { kind: 'cover' },
+    { kind: 'data' },
+    { kind: 'cardFront' },
+    { kind: 'cardBack' },
+    ...design.stamps.map((_, index): DocumentRef => ({ kind: 'stamp', index })),
+    { kind: 'visaPage' },
+  ];
+}

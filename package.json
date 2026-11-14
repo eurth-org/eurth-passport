@@ -1,0 +1,20 @@
+{
+  "name": "eurth-passport",
+  "private": true,
+  "version": "0.0.1",
+  "type": "module",
+  "description": "Passport: a free online designer for fictional passports and identity papers, for worldbuilders, by Eurth.",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "check": "tsc --noEmit",
+    "test": "vitest run",
+    "sheet": "vitest run --config tools/sheet.config.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.6",
+    "typescript": "^7.0.2",
+    "vitest": "^5.1.0"
+  }
+}
