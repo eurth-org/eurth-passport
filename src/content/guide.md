@@ -96,7 +96,7 @@ So Passport keeps a clear line, with four rules that cannot be changed:
 
 1. Every data page and card carries a SPECIMEN overprint, and it cannot be switched off.
 2. There are no photo uploads. Portraits are the tool's own drawings.
-3. There are no real countries in the templates, and the tool declines to print a real country's name as the issuing state.
+3. There are no real countries in the templates, and the tool declines to print a real country's name as the issuing state, as a document's title or on a stamp.
 4. There is no machine-readable zone. Where a real passport has one, Passport draws a decorative strip that reads "FICTIONAL · NOT A TRAVEL DOCUMENT", with the caption "Decorative strip. Not machine readable."
 
 Passport also offers no print-ready, actual-size output.

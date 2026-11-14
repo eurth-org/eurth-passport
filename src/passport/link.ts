@@ -121,9 +121,13 @@ export function fromQuery(search: string): Design | null {
   return value ? decodeDesign(value) : null;
 }
 
-/** The whole link, and whether it is short enough to travel in a profile. */
+/**
+ * The whole link, and whether it is short enough to travel in a profile. It always names the
+ * design, the opening one too ("?p=1.e30"), so that a link saved in a profile can be told from
+ * a bare address.
+ */
 export function designLink(design: Design, site: string = SITE): { url: string; fits: boolean } {
-  const url = `${site}${toQuery(design)}`;
+  const url = `${site}?${LINK_PARAM}=${encodeDesign(design)}`;
   return { url, fits: url.length <= MAX_LINK_LENGTH };
 }
 

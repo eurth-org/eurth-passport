@@ -53,7 +53,8 @@ export const plainCalendar: Calendar = {
 };
 
 const whole = (value: unknown, min: number, max: number, fallback: number): number => {
-  const v = typeof value === 'number' ? value : Number(value);
+  // Only a number, or text that is one, counts: null and "" are not zero.
+  const v = typeof value === 'number' ? value : typeof value === 'string' && value.trim() !== '' ? Number(value) : NaN;
   return Number.isFinite(v) ? Math.min(max, Math.max(min, Math.round(v))) : fallback;
 };
 

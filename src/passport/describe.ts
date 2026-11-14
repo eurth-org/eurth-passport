@@ -11,13 +11,20 @@ import { pattern } from './patterns';
 import { describePortrait } from './portraits';
 import { borderNames, markNames, shapeNames } from './stamps';
 
-const formWord = /^(republic|kingdom|united|federation|federal|commonwealth|principality|grand|empire|free|league|union|confedera|sultanate|emirate|duchy|state|states|people|democratic|holy|most|city|isles|islands|realm|dominion|protectorate)/i;
+// A name built around a form of state takes "the": the Republic of Teland, the Tidewater League.
+const formWord = /\b(republic|kingdom|united|federation|federal|commonwealth|principality|duchy|empire|free city|league|union|confederation|confederacy|sultanate|emirate|emirates|states|isles|islands|realm|dominion|protectorate|cantons|provinces)\b/i;
 
 /** A state's name as it sits in a sentence: "the Republic of Teland", "Calderwyn". */
 export function withArticle(name: string): string {
   const plain = name.trim();
   if (/^the\s/i.test(plain)) return plain.replace(/^the/i, 'the');
   return formWord.test(plain) ? `the ${plain}` : plain;
+}
+
+/** An office's name as it sits in a sentence: "the Ministry of the Interior". */
+export function theOffice(name: string): string {
+  const plain = name.trim();
+  return /^the\s/i.test(plain) ? plain.replace(/^the/i, 'the') : `the ${plain}`;
 }
 
 const lower = (text: string): string => text.charAt(0).toLowerCase() + text.slice(1);
@@ -63,7 +70,7 @@ export function describeDataPage(design: Design): string {
   return (
     `Passport data page of ${withArticle(state.name)}, overprinted SPECIMEN. ` +
     `Holder: ${fullName(design)}, ${state.demonym.trim()}, born ${formatDate(holder.born, calendar)} in ${holder.birthplace.trim()}. ` +
-    `Document number ${p.number.trim()}, issued ${formatDate(p.issued, calendar)}, expires ${formatDate(expires, calendar)}, by ${withArticle(p.authority)}. ` +
+    `Document number ${p.number.trim()}, issued ${formatDate(p.issued, calendar)}, expires ${formatDate(expires, calendar)}, by ${theOffice(p.authority)}. ` +
     `The portrait is ${describePortrait(p.portrait)}. ` +
     `Printed on ${paperPhrase(design)}. ` +
     `Where a real passport has a machine-readable zone, this one has a decorative strip that reads “Fictional · not a travel document”.`
@@ -84,7 +91,7 @@ export function describeCard(design: Design, side: 'front' | 'back'): string {
   }
   return (
     head +
-    `Place of birth: ${holder.birthplace.trim()}. Issued ${formatDate(p.issued, calendar)} by ${withArticle(p.authority)}. ` +
+    `Place of birth: ${holder.birthplace.trim()}. Issued ${formatDate(p.issued, calendar)} by ${theOffice(p.authority)}. ` +
     `A drawing of a chip, the line “This card is a work of fiction.”, and a decorative strip that reads “Fictional · not a travel document”. Printed on ${paperPhrase(design)}.`
   );
 }

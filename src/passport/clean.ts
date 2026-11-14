@@ -121,7 +121,8 @@ export function cleanStamp(value: unknown, calendar: Calendar | null, fallbackKi
     dateStyle: pick(o.dateStyle, dateStyles, base.dateStyle),
     mark: pick(o.mark, stampMarks, base.mark),
     ink: pick(o.ink, stampInkIds, base.ink),
-    rot: Math.round(clamp(o.rot, -MAX_ROTATION, MAX_ROTATION, base.rot) * 10) / 10,
+    // "|| 0" turns a negative zero into a plain one, which is what a link brings back.
+    rot: Math.round(clamp(o.rot, -MAX_ROTATION, MAX_ROTATION, base.rot) * 10) / 10 || 0,
     wear: whole(o.wear, 0, MAX_WEAR, base.wear),
     x: whole(o.x, 0, 100, base.x),
     y: whole(o.y, 0, 100, base.y),

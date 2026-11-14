@@ -141,6 +141,12 @@ export function passportSection(design: Design, options: SectionOptions = {}): R
   return section;
 }
 
+/** What a profile is sure to have once Passport has written to it. */
+export interface Written {
+  meta: Record<string, unknown> & { updated: string };
+  passport: Record<string, unknown> & { updated: string };
+}
+
 export interface WriteOptions extends SectionOptions {
   now?: Date;
 }
@@ -150,14 +156,15 @@ export interface WriteOptions extends SectionOptions {
  * every unknown key is the same value in the same place; keys in the old section that this
  * version doesn't know are kept too. The profile passed in is not changed.
  */
-export function withPassport<P extends Record<string, unknown>>(profile: P, design: Design, options: WriteOptions = {}): P {
+export function withPassport<P extends object>(profile: P, design: Design, options: WriteOptions = {}): P & Written {
   const updated = (options.now ?? new Date()).toISOString();
-  const old = bag(profile.passport);
+  const source = profile as Record<string, unknown>;
+  const old = bag(source.passport);
   const section = passportSection(design, options);
   const next: Bag = { ...old, ...section, updated };
   // A design that now fits its link no longer needs to travel in the section, and the reverse.
   if (!('design' in section)) delete next.design;
   if (!('link' in section)) delete next.link;
   if (!('svg' in section)) delete next.svg;
-  return { ...profile, meta: { ...bag(profile.meta), updated }, passport: next } as P;
+  return { ...profile, meta: { ...bag(source.meta), updated }, passport: next } as P & Written;
 }
