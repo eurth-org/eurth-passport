@@ -19,6 +19,7 @@
   import { calendarOf } from '../passport/dates';
   import { describeDocument, describeStamp, titleOf } from '../passport/describe';
   import { REAL_COUNTRY_NOTE, isRealCountry } from '../passport/fiction';
+  import { PICTURE_ERROR, pictureFile, type PictureKind } from '../passport/files';
   import { MOON_STAMP_TEXT, hasMoonVisa } from '../passport/fun';
   import { compactDesign, expandDesign } from '../passport/link';
   import { MAX_SEED, MAX_STAMPS, defaultDesign, defaultStamp, limits, stampKindNames, stampKinds, type Design, type DocumentRef, type StampKind } from '../passport/model';
@@ -156,7 +157,19 @@
   async function save(kind: 'svg' | 'png' | 'webp') {
     const p = picture();
     if (kind === 'svg') download(p.svg, `${p.name}.svg`, 'image/svg+xml');
-    else download(await svgToPicture(p.svg, { width: p.width, height: p.height, type: kind === 'png' ? 'image/png' : 'image/webp', quality: 0.92 }), `${p.name}.${kind}`);
+    else await savePicture(p.svg, p.width, p.height, p.name, kind);
+  }
+
+  /** Draws a picture and downloads it, named for what the browser really made (Safari answers WebP with a PNG). */
+  async function savePicture(svg: string, width: number, height: number, name: string, kind: PictureKind) {
+    try {
+      const blob = await svgToPicture(svg, { width, height, type: kind === 'png' ? 'image/png' : 'image/webp', quality: 0.92 });
+      const file = pictureFile(name, kind, blob.type);
+      download(blob, file.filename);
+      if (file.note) toast(file.note);
+    } catch {
+      toast(PICTURE_ERROR);
+    }
   }
 
   /** The chosen stamp on its own, on a clear ground: for a forum post or a wiki page. */
@@ -166,7 +179,7 @@
     const name = `${fileSlug(shown.state.name, 'papers')}-${stamp.kind}-stamp`;
     const extent = stampExtent(stamp);
     if (kind === 'svg') download(one, `${name}.svg`, 'image/svg+xml');
-    else download(await svgToPicture(one, { width: Math.round(extent.w * 3), height: Math.round(extent.h * 3) }), `${name}.png`);
+    else await savePicture(one, Math.round(extent.w * 3), Math.round(extent.h * 3), name, 'png');
   }
 </script>
 

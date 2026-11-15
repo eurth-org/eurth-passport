@@ -6,7 +6,7 @@ Three parts: what comes next, what each release added (newest first), and what's
 
 ## Where to pick up
 
-**15 November 2026.** The site is built and pushed, on top of @eurth/style 1.0.1 and @eurth/profile 1.0.0: four pages, the designer, the link, the profile file, downloads, sharing, the stamp's thump and the Moon's jacket. `npm run check`, `npm run build`, `npm test` (235 tests, the suite's own included) and `npm run axe` all pass. Nothing is deployed, and nothing will be until the launch workflow opens the door on 19 December 2026 at 00:00 in Brussels.
+**15 November 2026.** The site is built and pushed, on top of @eurth/style 1.0.1 and @eurth/profile 1.0.0: four pages, the designer, the link, the profile file, downloads, sharing, the stamp's thump and the Moon's jacket. `npm run check`, `npm run build`, `npm test` (239 tests, the suite's own included) and `npm run axe` all pass. Checked in Chrome, Safari and Firefox. Nothing is deployed, and nothing will be until the launch workflow opens the door on 19 December 2026 at 00:00 in Brussels.
 
 What is left is under "Next", in order. Start with the first item.
 
@@ -20,12 +20,12 @@ Decided on the way (say if you'd rather otherwise):
 - **The link is the suite's own form,** `?d=1.…`, so the shared helpers read and write it.
 - **Documents are shown as pictures** (an `<img>` with the description as its alternative text), never as markup in the page. On the visa page each stamp is its own picture over a blank page, so it can be picked, dragged and thumped.
 - **The header shows the yurt and the favicon is the yurt too;** Passport has no mark of its own yet.
+- **The emblems and avatars stay as they are, drawn in code.** Stijn looked at all twenty-four on 15 November 2026 and kept them.
 
 ## Next
 
-1. **Look at it with your own eyes.** `npm run dev`, then go through the five tabs, load `tests/fixtures/calderwyn.eurth.json` with Load profile (arms on the cover, dates in the Lantern Reckoning, a Calderwynian holder), save it again, and try the downloads. This has been checked by tests and in Chrome, not by a person.
-   - **Judge the drawings.** The twelve emblems and twelve avatars are drawn in code, as the brief asks ("our own drawn avatars", "a simple emblem of our own"). In Arms, Stijn turned down animals drawn that way and asked for free art from Wikimedia Commons instead. The emblems here are plain shapes (star, sun, wheel, key, anchor), but the crown, the ship, the tree and the avatars are figurative. `npm run sheet` shows them all. If they don't pass, the emblems could come from Commons (public domain or CC BY or BY-SA, credited); the avatars can't be photographs or real people, so they would need a better drawing, not a borrowed one.
-2. **Safari and Firefox.** Chrome draws a profile's arms into PNG and WebP correctly. Check the same in Safari (a picture inside an SVG drawn to a canvas has misbehaved there before) and that long names squeeze sensibly in each browser's own fonts.
+1. **Look at it with your own eyes.** `npm run dev`, then go through the five tabs, load `tests/fixtures/calderwyn.eurth.json` with Load profile (arms on the cover, dates in the Lantern Reckoning, a Calderwynian holder), save it again, and try the downloads. This has been checked by tests and in three browsers, not by a person.
+2. **Safari and Firefox** were checked on 15 November 2026 (Safari 27, Firefox 159): every document draws into a PNG with the profile's arms on it, long names squeeze sensibly, and in Safari the tabs, the thump and the link work. Safari can't make WebP and hands back a PNG without saying so; the file is now named `.png` and a note says why. Flagwright and the shared `svgToPicture()` still have that fault.
 3. **The profile's `passport` section:** `title` and `svg` (the cover) are proposed in [eurth-org/eurth-profile#2](https://github.com/eurth-org/eurth-profile/pull/2), which also asks what to do about designs too big for a 4,000-character link (today those travel under a key the schema doesn't name, `design`, and pass the profile's own check). Follow what is decided there.
 4. **Lighthouse** ran in CI on 15 November and its assertions passed on all four pages (accessibility, best practices and SEO at 100, performance at 95 or better). The start page carries the whole designer, so watch its weight as it grows.
 5. **CI is green** on GitHub (check, build, test, axe, Lighthouse), and its deploy step holds back until the door, as it should.
@@ -51,7 +51,8 @@ Nothing is live yet: the door opens on 19 December 2026. What is built so far, n
 - **Saving:** the link (`?d=1.…`) follows the papers in the address bar; Load profile and Save profile from @eurth/profile, writing only the `passport` section. A loaded profile brings its name, arms, names and calendar.
 - **Downloads:** SVG, PNG and WebP of each document, as it is or set on a ground in the suite's six sharing sizes; the chosen stamp on its own on a clear ground. Copy link, Copy picture, Copy description and the Share dialog.
 - **Delight:** a stamp thumps onto the page and the page takes the knock (with a low thud when sound is on, and nothing at all for reduced motion); a visa for the Moon gets a second stamp and the toast "Bring a jacket."; "Nice." on the position sliders.
-- **Checks:** 235 tests. Besides Phase 1's: the suite's own (contrast, security headers, privacy, no spoilers, pages, launch date), links read by the shared helpers, what Passport writes checked by @eurth/profile's own validator, stamps on screen where the download draws them, and SPECIMEN kept in every sharing size. axe finds nothing on five pages in both themes.
+- **A picture is named for what it is:** Safari answers a request for WebP with a PNG, so the download is called `.png` and a note says so; if a browser can't draw the picture at all, a plain message points to the SVG.
+- **Checks:** 239 tests. Besides Phase 1's: the suite's own (contrast, security headers, privacy, no spoilers, pages, launch date), links read by the shared helpers, what Passport writes checked by @eurth/profile's own validator, stamps on screen where the download draws them, and SPECIMEN kept in every sharing size. axe finds nothing on five pages in both themes.
 
 ### 15 November 2026: the engine and the words (Phase 1; built, not yet live)
 
@@ -68,8 +69,7 @@ Nothing is live yet: the door opens on 19 December 2026. What is built so far, n
 Known limits, for Phase 2 or after:
 
 - The guide's sources for a few claims are secondary (the railways and the nineteenth-century lull; the Safe Conducts Act 1414 rests on HM Passport Office's history page). Details that couldn't be checked were left out.
-- Text can't be measured without a browser, so long lines are shrunk by estimate and then squeezed with `textLength`. Check the longest cases in real browsers.
-- The profile's arms go on the cover as a picture inside the SVG. Check early that they survive the trip into PNG in Safari.
+- Text can't be measured without a browser, so long lines are shrunk by estimate and then squeezed with `textLength`. The longest cases looked right in Chrome, Safari and Firefox on 15 November 2026.
 
 ## Not planned
 

@@ -11,6 +11,7 @@ import { describe, expect, it } from 'vitest';
 import { cleanDesign } from '../src/passport/clean';
 import { describeDocument, titleOf } from '../src/passport/describe';
 import { specimenOverprint } from '../src/passport/fiction';
+import { PICTURE_ERROR, WEBP_NOTE, pictureFile } from '../src/passport/files';
 import { LINK_PARAM, compactDesign, decodeDesign, encodeDesign, expandDesign, toQuery } from '../src/passport/link';
 import { MAX_STAMPS, defaultDesign, type Design } from '../src/passport/model';
 import { designFromProfile, nextSection, withPassport } from '../src/passport/profile';
@@ -168,5 +169,30 @@ describe('a document set on a ground, in the sharing sizes', () => {
         }
       }
     }
+  });
+});
+
+describe('a picture is named for what the browser really made', () => {
+  it('keeps the name asked for when the browser made that kind', () => {
+    expect(pictureFile('teland-cover', 'png', 'image/png')).toEqual({ filename: 'teland-cover.png', note: null });
+    expect(pictureFile('teland-cover', 'webp', 'image/webp')).toEqual({ filename: 'teland-cover.webp', note: null });
+    expect(pictureFile('teland-cover', 'webp', 'IMAGE/WEBP; q=1')).toEqual({ filename: 'teland-cover.webp', note: null });
+  });
+
+  it('calls a PNG a PNG when Safari answers a request for WebP with one, and says so', () => {
+    expect(pictureFile('teland-cover-square', 'webp', 'image/png')).toEqual({ filename: 'teland-cover-square.png', note: WEBP_NOTE });
+  });
+
+  it('trusts the kind asked for when the browser names no kind it knows', () => {
+    expect(pictureFile('teland-cover', 'png', '')).toEqual({ filename: 'teland-cover.png', note: null });
+    expect(pictureFile('teland-cover', 'webp', 'application/octet-stream')).toEqual({ filename: 'teland-cover.webp', note: null });
+  });
+
+  it('says what went wrong plainly, with a way out and no joke', () => {
+    for (const text of [WEBP_NOTE, PICTURE_ERROR]) {
+      expect(text).toMatch(/^This browser (can|couldn).t /);
+      expect(text.endsWith('.')).toBe(true);
+    }
+    expect(PICTURE_ERROR).toContain('SVG');
   });
 });
