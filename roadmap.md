@@ -25,9 +25,9 @@ Decided on the way (say if you'd rather otherwise):
 
 1. **Look at it with your own eyes.** `npm run dev`, then go through the five tabs, load `tests/fixtures/calderwyn.eurth.json` with Load profile (arms on the cover, dates in the Lantern Reckoning, a Calderwynian holder), save it again, and try the downloads. This has been checked by tests and in Chrome, not by a person.
 2. **Safari and Firefox.** Chrome draws a profile's arms into PNG and WebP correctly. Check the same in Safari (a picture inside an SVG drawn to a canvas has misbehaved there before) and that long names squeeze sensibly in each browser's own fonts.
-3. **The profile's `passport` section:** the schema names `link`, `summary`, `updated` and `colour`. Passport also writes `title`, `svg` (the cover) and, only when a design is too big for a 4,000-character link, `design`. The schema keeps unknown keys, and what Passport writes passes @eurth/profile's own check, but the fields should be proposed to eurth-profile so the schema describes them.
-4. **Lighthouse** runs in CI on `main`; read its first report and fix what it finds. The start page carries the whole designer, so watch its weight.
-5. **The first CI run** on GitHub: the three workflows are the starter's thin callers. Confirm the run is green and that it did not deploy.
+3. **The profile's `passport` section:** `title` and `svg` (the cover) are proposed in [eurth-org/eurth-profile#2](https://github.com/eurth-org/eurth-profile/pull/2), which also asks what to do about designs too big for a 4,000-character link (today those travel under a key the schema doesn't name, `design`, and pass the profile's own check). Follow what is decided there.
+4. **Lighthouse** ran in CI on 15 November and its assertions passed on all four pages (accessibility, best practices and SEO at 100, performance at 95 or better). The start page carries the whole designer, so watch its weight as it grows.
+5. **CI is green** on GitHub (check, build, test, axe, Lighthouse), and its deploy step holds back until the door, as it should.
 6. **Before the door:** on 18 December the launch workflow starts at 22:30 UTC. If it hasn't started by 22:45 UTC, start it by hand. After the launch, delete `launch.yml`.
 
 ### After launch
