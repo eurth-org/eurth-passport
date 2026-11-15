@@ -1,0 +1,43 @@
+---
+// The guide: how passports and identity papers are put together, where they came from, and how
+// to design them for a state that doesn't exist. The words live in src/content/guide.md and the
+// sources in src/content/sources.ts; search engines get the breadcrumb and the article's date.
+import { article, ref } from '@eurth/style/build';
+import Page from '@eurth/style/components/Page.astro';
+import { site } from '../../eurth.config.mjs';
+import { Content, frontmatter } from '../content/guide.md';
+import { sources } from '../content/sources';
+
+const updated = String(frontmatter.updated).slice(0, 10);
+const updatedInWords = new Date(`${updated}T12:00:00Z`).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' });
+const headline: string = frontmatter.title;
+const description: string = frontmatter.description;
+---
+
+<Page site={site} title={headline} description={description} crumbs={[{ name: 'Guide', path: '/guide/' }]} jsonld={[article(site, { headline, path: '/guide/', description, updated })]}>
+  <article class="eu-prose">
+    <p class="eu-kicker">Guide</p>
+    <h1>{headline}</h1>
+    <Content />
+
+    <h2 id="try-it">Try it</h2>
+    <p>
+      Open the <a href="/">designer</a>, or start from one of the <a href="/templates/">templates</a>. The <a href="/glossary/">glossary</a> has the words in a
+      sentence each. When the papers look right, give them a country: <a href="https://eurth.org" data-same-tab>Eurth</a> has a world for it to live in.
+    </p>
+
+    <h2 id="sources">Sources</h2>
+    <ul>
+      {
+        sources.map((source) => (
+          <li>
+            {source.url ? <a href={ref(source.url, site.host)}>{source.title}</a> : <cite>{source.title}</cite>}, {source.author}
+            {source.publisher && source.publisher !== source.author ? `, ${source.publisher}` : ''}
+            {source.year ? `, ${source.year}` : ''}. {source.note}
+          </li>
+        ))
+      }
+    </ul>
+    <p class="eu-muted">Last updated <time datetime={updated}>{updatedInWords}</time>.</p>
+  </article>
+</Page>

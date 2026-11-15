@@ -11,7 +11,7 @@ Status: the engine and the words are built and tested; the site comes next. The 
 ## How it works
 
 - The engine in `src/passport/` is plain TypeScript with no browser or framework in it: a set of papers is data, and one function per document draws it as SVG text. The editor to come, the downloads, the template pages and the tests all use those same functions.
-- A design lives in its link (`?p=1.…`), which holds only what differs from the opening design, and in the Eurth profile file, where Passport owns the `passport` section. Nothing is stored anywhere else.
+- A design lives in its link (`?d=1.…`), which holds only what differs from the opening design, and in the Eurth profile file, where Passport owns the `passport` section. Nothing is stored anywhere else.
 - Whatever arrives from a link or a file is checked and clamped before it is drawn.
 
 ## Fiction only

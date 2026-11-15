@@ -1,0 +1,60 @@
+---
+// The glossary: each term has an id to link to, and the whole set is given to search engines
+// as a DefinedTermSet. The terms live in src/content/glossary.ts.
+import { definedTermSet } from '@eurth/style/build';
+import Page from '@eurth/style/components/Page.astro';
+import { site } from '../../eurth.config.mjs';
+import { glossary } from '../content/glossary';
+
+const name = 'Glossary of passport and identity paper terms';
+const termOf = new Map(glossary.map((t) => [t.id, t.term]));
+const terms = glossary.map(({ id, term, definition }) => ({ id, term, definition }));
+---
+
+<Page
+  site={site}
+  title={name}
+  description={`${glossary.length} words from the world of passports, identity cards, visas and border stamps, each explained in a sentence or two: from biometric passport to watermark.`}
+  crumbs={[{ name: 'Glossary', path: '/glossary/' }]}
+  jsonld={[definedTermSet(site, { name, path: '/glossary/', terms })]}
+>
+  <article class="eu-prose">
+    <p class="eu-kicker">Glossary</p>
+    <h1>{name}</h1>
+    <p class="eu-lead">
+      The words this tool uses, and a few it only nods to, in a sentence or two each. The <a href="/guide/">guide</a> shows how they fit together; the
+      <a href="/">designer</a> lets you try them.
+    </p>
+    <dl>
+      {
+        glossary.map((t) => (
+          <>
+            <dt id={t.id}>{t.term}</dt>
+            <dd>
+              {t.definition}
+              {t.see?.length ? (
+                <span class="see">
+                  {' '}
+                  See also{' '}
+                  {t.see.map((id, i) => (
+                    <>
+                      {i > 0 && (i === t.see!.length - 1 ? ' and ' : ', ')}
+                      <a href={`#${id}`}>{termOf.get(id)?.toLowerCase()}</a>
+                    </>
+                  ))}
+                  .
+                </span>
+              ) : null}
+            </dd>
+          </>
+        ))
+      }
+    </dl>
+  </article>
+</Page>
+
+<style>
+  .see {
+    color: var(--ink-muted);
+  }
+</style>

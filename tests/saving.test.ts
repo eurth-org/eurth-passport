@@ -40,7 +40,7 @@ describe('the link', () => {
     expect(compactDesign(defaultDesign())).toEqual({});
     expect(toQuery(defaultDesign())).toBe('');
     // A link for a profile always names its design, the opening one too.
-    expect(designLink(defaultDesign())).toEqual({ url: `${SITE}?p=1.e30`, fits: true });
+    expect(designLink(defaultDesign())).toEqual({ url: `${SITE}?d=1.e30`, fits: true });
     expect(compactDesign(tweak((x) => (x.cover.foil = 'silver')))).toEqual({ cover: { foil: 'silver' } });
     expect(compactDesign(tweak((x) => (x.holder.born.y = 1980)))).toEqual({ holder: { born: { y: 1980 } } });
     expect(compactDesign(tweak((x) => (x.stamps[0]!.ink = 'red')))).toEqual({ stamps: [{ kind: 'entry', ink: 'red' }, { kind: 'exit' }, { kind: 'visa' }] });
@@ -91,9 +91,9 @@ describe('the link', () => {
     expect(decodeDesign('1.e30')).toEqual(defaultDesign());
     expect(fromQuery('')).toBeNull();
     expect(fromQuery('?other=1')).toBeNull();
-    expect(fromQuery('?p=nonsense')).toBeNull();
-    expect(fromQuery('p=1.e30')).toEqual(defaultDesign());
-    expect(fromQuery('?ref=forum&p=1.e30')).toEqual(defaultDesign());
+    expect(fromQuery('?d=nonsense')).toBeNull();
+    expect(fromQuery('d=1.e30')).toEqual(defaultDesign());
+    expect(fromQuery('?ref=forum&d=1.e30')).toEqual(defaultDesign());
   });
 
   it('cleans whatever a link carries before it is drawn', () => {
@@ -213,7 +213,7 @@ describe('writing the passport section', () => {
   it('holds a link, a summary, the colour, the title and the cover as a picture', () => {
     const section = passportSection(defaultDesign());
     expect(Object.keys(section)).toEqual(['link', 'summary', 'colour', 'title', 'svg']);
-    expect(section.link).toBe(`${SITE}?p=1.e30`);
+    expect(section.link).toBe(`${SITE}?d=1.e30`);
     expect(section.colour).toBe('#5b1a28');
     expect(section.title).toBe('Passport');
     expect(section.summary).toMatch(/^A burgundy passport with gold lettering/);
@@ -281,7 +281,7 @@ describe('writing the passport section', () => {
     const next = withPassport(profile, defaultDesign(), { now });
     expect(next.moon).toBe(profile.moon);
     expect(next.meta).toEqual({ schema: 1, nation: 'Teland', updated: '2026-11-14T22:30:00.000Z', future: true });
-    expect(next.passport).toMatchObject({ link: `${SITE}?p=1.e30`, colour: '#5b1a28', laminate: 'matte', title: 'Passport' });
+    expect(next.passport).toMatchObject({ link: `${SITE}?d=1.e30`, colour: '#5b1a28', laminate: 'matte', title: 'Passport' });
     // A design that now fits its link no longer travels in the section.
     expect('design' in next.passport).toBe(false);
     const back = withPassport(next, hugeDesign(), { now });

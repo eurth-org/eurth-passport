@@ -1,0 +1,87 @@
+---
+// Templates: whole sets of papers for invented states, each a link into the designer. The links
+// and the pictures are made at build time with the same code the designer uses, so they can
+// never drift apart.
+import Page from '@eurth/style/components/Page.astro';
+import { site } from '../../eurth.config.mjs';
+import { describeCover, describeStamp } from '../passport/describe';
+import { toQuery } from '../passport/link';
+import { renderCover, renderStamp, svgDataUrl } from '../passport/render';
+import { templates } from '../passport/templates';
+---
+
+<Page
+  site={site}
+  title="Passport templates for fictional states"
+  description={`${templates.length} ready-made sets of papers for countries that don't exist: a cover, a data page, an identity card and three stamps each. Open one and make it yours.`}
+  crumbs={[{ name: 'Templates', path: '/templates/' }]}
+>
+  <div class="eu-stack">
+    <header class="eu-prose">
+      <p class="eu-kicker">Templates</p>
+      <h1>Passport templates for fictional states</h1>
+      <p class="eu-lead">
+        Somewhere to start: {templates.length} sets of papers, none of them from a real country. Open one in the <a href="/">designer</a> and change what you like; the
+        <a href="/guide/">guide</a> explains what each part is for.
+      </p>
+    </header>
+    <ul class="gallery">
+      {
+        templates.map((t) => (
+          <li>
+            <a class="eu-card" href={`/${toQuery(t.design)}`}>
+              <span class="pictures">
+                <img class="cover" src={svgDataUrl(renderCover(t.design, { idPrefix: `${t.id}-c` }))} alt={describeCover(t.design)} width="352" height="500" loading="lazy" />
+                <img class="stamp" src={svgDataUrl(renderStamp(t.design, 0, { idPrefix: `${t.id}-s` }))} alt={describeStamp(t.design.stamps[0]!, t.design)} width="212" height="212" loading="lazy" />
+              </span>
+              <h2>{t.name}</h2>
+              <p>{t.blurb}</p>
+            </a>
+          </li>
+        ))
+      }
+    </ul>
+  </div>
+</Page>
+
+<style>
+  .gallery {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: var(--space-4);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .gallery li {
+    display: flex;
+  }
+
+  .gallery a {
+    flex: 1;
+  }
+
+  .pictures {
+    display: flex;
+    align-items: center;
+    gap: var(--space-4);
+  }
+
+  .cover {
+    display: block;
+    width: 46%;
+    height: auto;
+    border-radius: var(--radius-md);
+  }
+
+  .stamp {
+    display: block;
+    width: 44%;
+    height: auto;
+  }
+
+  .gallery h2 {
+    font: var(--type-heading);
+  }
+</style>

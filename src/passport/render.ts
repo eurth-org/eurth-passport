@@ -265,7 +265,38 @@ export function renderStamp(design: Design, index: number, o: RenderOptions = {}
   );
 }
 
-const PAGE_SCALE = 0.6;
+/** How much smaller a stamp is on the visa page than on its own. */
+export const PAGE_SCALE = 0.6;
+
+/** The middle of a stamp on the visa page, in the page's units, from its place in per cent. */
+export function stampCentre(x: number, y: number): { cx: number; cy: number } {
+  const { w, h } = sizes.page;
+  return { cx: 60 + (x / 100) * (w - 120), cy: 78 + (y / 100) * (h - 150) };
+}
+
+/** The place in per cent that puts a stamp's middle at a point on the visa page: the reverse of stampCentre. */
+export function stampPlace(cx: number, cy: number): { x: number; y: number } {
+  const { w, h } = sizes.page;
+  const pc = (value: number): number => Math.round(Math.min(100, Math.max(0, value)));
+  return { x: pc(((cx - 60) / (w - 120)) * 100), y: pc(((cy - 78) / (h - 150)) * 100) };
+}
+
+/**
+ * Where the picture of one stamp (as renderStamp draws it) sits on the visa page, in the page's
+ * units: so an editor can lay each stamp over a blank page and have it land exactly where
+ * renderVisaPage draws it.
+ */
+export function stampOnPage(design: Design, index: number): { left: number; top: number; width: number; height: number } | null {
+  const stamp = design.stamps[index];
+  if (!stamp) return null;
+  const extent = stampExtent(stamp);
+  const moon = isMoonVisa(stamp);
+  const pad = 14;
+  const width = Math.ceil(extent.w + pad * 2 + (moon ? JACKET_OFFSET.x : 0));
+  const height = Math.ceil(extent.h + pad * 2 + (moon ? NOTE_BOX.h + JACKET_OFFSET.y : 0));
+  const { cx, cy } = stampCentre(stamp.x, stamp.y);
+  return { left: cx - ((extent.w + pad * 2) / 2) * PAGE_SCALE, top: cy - ((extent.h + pad * 2) / 2) * PAGE_SCALE, width: width * PAGE_SCALE, height: height * PAGE_SCALE };
+}
 
 /** A visa page of the passport, with every stamp where it was pressed. */
 export function renderVisaPage(design: Design, o: RenderOptions = {}): string {
@@ -273,8 +304,7 @@ export function renderVisaPage(design: Design, o: RenderOptions = {}): string {
   const ink = hexOf(printInks, design.papers.ink);
   let stamps = '';
   design.stamps.forEach((stamp, index) => {
-    const cx = 60 + (stamp.x / 100) * (w - 120);
-    const cy = 78 + (stamp.y / 100) * (h - 150);
+    const { cx, cy } = stampCentre(stamp.x, stamp.y);
     stamps += drawStamp(stamp, cx, cy, { calendar: design.calendar, idPrefix: `${prefix(o)}-v${index}` }, PAGE_SCALE);
     if (isMoonVisa(stamp)) stamps += noteStamp(MOON_STAMP_TEXT, 'red', 4, cx + JACKET_OFFSET.x * PAGE_SCALE, cy + (stampExtent(stamp).h / 2 + JACKET_OFFSET.y) * PAGE_SCALE, PAGE_SCALE);
   });
@@ -316,4 +346,25 @@ export function documentsOf(design: Design): DocumentRef[] {
     ...design.stamps.map((_, index): DocumentRef => ({ kind: 'stamp', index })),
     { kind: 'visaPage' },
   ];
+}
+
+/**
+ * A document set on a plain ground, for the sharing sizes (a link preview, a square, a story):
+ * the document as it is, centred, with room around it. The ground's colour is the caller's,
+ * from the suite's tokens.
+ */
+export function renderShare(design: Design, ref: DocumentRef, size: { width: number; height: number }, ground: string, o: RenderOptions = {}): string {
+  const inner = renderDocument(design, ref, o);
+  const box = /^<svg xmlns="http:\/\/www\.w3\.org\/2000\/svg" viewBox="0 0 ([\d.]+) ([\d.]+)" width="[\d.]+" height="[\d.]+" role="img" aria-label="[^"]*">/.exec(inner);
+  const w = Number(box?.[1] ?? 100);
+  const h = Number(box?.[2] ?? 100);
+  const margin = Math.min(size.width, size.height) * 0.09;
+  const scale = Math.min((size.width - margin * 2) / w, (size.height - margin * 2) / h);
+  const placed = `<svg x="${n((size.width - w * scale) / 2)}" y="${n((size.height - h * scale) / 2)}" width="${n(w * scale)}" height="${n(h * scale)}" viewBox="0 0 ${n(w)} ${n(h)}">`;
+  return (
+    svgOpen({ width: size.width, height: size.height, title: titleOf(design, ref), desc: describeDocument(design, ref, { armsUsed: armsUsed(design, o) }) }) +
+    `<rect width="${n(size.width)}" height="${n(size.height)}" fill="${ground}"/>` +
+    (box ? placed + inner.slice(box[0].length) : '') +
+    `</svg>`
+  );
 }

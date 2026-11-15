@@ -12,7 +12,7 @@ To look the drawings over before the site exists: `npm run sheet`, then open `pr
 
 Decided on the way (say if you'd rather otherwise):
 
-- **A real country's name is refused, not just noted,** as the issuing state, as a document's title, as the authority and on a stamp's own lines, with the note "That one exists. Passport is for countries that don't." Whole names only: a holder may be called Jordan and be born in a town called Georgia. Demonyms ("French") are not checked.
+- **A real country's name is refused, not just noted,** as the issuing state, as a document's title, as the authority and on a stamp's own lines, with the note "That is a real country. Passport only makes papers for invented ones." Whole names only: a holder may be called Jordan and be born in a town called Georgia. Demonyms ("French") are not checked.
 - **Dates are picked in the world's own calendar** (its months, month lengths and era) when the profile has one. Nothing is converted from ours.
 - **A profile's arms are used only if they are pure vector drawing.** An SVG that wraps a photograph, a link or a script is turned away and one of our emblems stands in.
 - **The profile section** holds `link`, `summary`, `colour`, and two keys the schema doesn't name yet, `title` and `svg` (the cover). A design too big for a 4,000-character link travels in the section under `design`. To do: propose `title` and `svg` to eurth-profile as a pull request, and ask there about `design`.
@@ -46,7 +46,7 @@ Nothing is live yet: the door opens on 19 December 2026. What is built so far, n
 - **Fiction only** (`fiction.ts`, `realworld.ts`, `tools/make-realworld.mjs`): SPECIMEN drawn last on every data page and card with no field to switch it off; portraits by id only and arms only if pure vector; a snapshot of 377 real country names and 526 codes that presets stay clear of and the tool declines to print; a decorative strip in place of a machine-readable zone, and no text field able to hold a line that looks like one. 32 tests, over 300 seeded designs, every template and hostile input, with a checker for real zones kept in the tests only.
 - **Drawing** (`emblems.ts`, `portraits.ts`, `patterns.ts`, `stamps.ts`, `render.ts`, `svg.ts`): twelve emblems, twelve avatars in six skin tones, five security patterns, stamps in six shapes with five borders and seeded wear, and the cover, data page, both sides of the card, each stamp and the visa page as SVG with a title and description inside.
 - **Words** (`describe.ts`): every document in plain sentences, and a summary for the profile.
-- **Saving** (`link.ts`, `profile.ts`): the design as `?p=1.…` holding only what differs from the opening design; the profile's `passport` section, read and written without touching anything else.
+- **Saving** (`link.ts`, `profile.ts`): the design as `?d=1.…` holding only what differs from the opening design; the profile's `passport` section, read and written without touching anything else.
 - **Holders and dates** (`names.ts`, `dates.ts`, `random.ts`): seeded invented holders, from the profile's names when it has them; dates in the profile's calendar.
 - **Twelve templates** (`templates.ts`) and **the Moon** (`fun.ts`): a visa that names the Moon gets "Bring a jacket."
 - **The guide, glossary and sources** (`src/content/`): about 2,600 words in seven sections, 42 terms, 12 sources checked on 14 November 2026.

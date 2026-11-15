@@ -25,7 +25,7 @@ export const STRIP_TEXT = 'FICTIONAL · NOT A TRAVEL DOCUMENT · FICTIONAL · NO
 export const STRIP_CAPTION = 'Decorative strip. Not machine readable.';
 
 /** Said, kindly, when someone types a real country as the issuing state. */
-export const REAL_COUNTRY_NOTE = 'That one exists. Passport is for countries that don’t.';
+export const REAL_COUNTRY_NOTE = 'That is a real country. Passport only makes papers for invented ones.';
 /** Said when a profile's arms can't be used. */
 export const ARMS_NOTE = 'These arms hold a picture or a link, so Passport is using one of its own emblems instead.';
 

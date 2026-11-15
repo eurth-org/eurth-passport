@@ -1,0 +1,86 @@
+---
+// The designer, and under it what search engines and newcomers both want: what it is, how to
+// use it, why it is for fiction only, and answers to the usual questions (also given to search
+// engines as structured data).
+import { faqPage, webApplication } from '@eurth/style/build';
+import Page from '@eurth/style/components/Page.astro';
+import { site } from '../../eurth.config.mjs';
+import Designer from '../ui/Designer.svelte';
+
+const faq = [
+  { q: 'Is Passport free?', a: 'Yes. There is no account and no paid tier. It is made by the Eurth worldbuilding community for anyone who needs papers for a country that doesn’t exist.' },
+  {
+    q: 'Can I make a passport for a real country, or with my own photo?',
+    a: 'No. Passport is for fiction only: it declines the names of real countries, it takes no photographs (portraits are its own drawings), and every data page and card is overprinted SPECIMEN. Nothing it draws can be read by a machine.',
+  },
+  {
+    q: 'Where are my papers saved?',
+    a: 'In their link. The link holds every document, so copying the link is saving it. You can also download each picture, or save your nation as a profile file that the other Eurth tools can read. Nothing is kept in your browser or on a server.',
+  },
+  { q: 'Can the dates follow my world’s own calendar?', a: 'Yes. Load a profile file that has a calendar, and every date on every document is picked and written in that calendar’s months and era.' },
+  { q: 'Does it work offline, and on a phone?', a: 'Yes to both. After the first visit the site keeps a copy of itself on your device and opens without a connection.' },
+];
+---
+
+<Page
+  site={site}
+  jsonld={[
+    webApplication(site, {
+      featureList: ['Passport covers', 'Passport data pages', 'Identity cards, front and back', 'Visa, entry and exit stamps', 'Dates in your world’s own calendar', 'SVG, PNG and WebP downloads', 'Link that holds the design', 'Nation profile file'],
+    }),
+    faqPage(faq),
+  ]}
+>
+  <div class="eu-stack">
+    <header class="eu-stack intro">
+      <p class="eu-kicker">Passport, by Eurth</p>
+      <h1>Papers for a country that doesn’t exist</h1>
+      <p class="eu-lead">Design a passport, an identity card and the stamps of a border that is only on your map. Free, in your browser, no account needed.</p>
+    </header>
+
+    <!-- client:load draws the designer as real HTML first, then wakes it up. -->
+    <Designer client:load siteName={site.name} siteUrl={site.url} />
+
+    <section class="eu-prose">
+      <h2>How it works</h2>
+      <ol>
+        <li>Name your state, pick the cover’s colour and emblem, and give the document its title in one language or two.</li>
+        <li>Meet the holder: press New holder for an invented person, choose a drawn portrait, and set the dates, the paper and its security pattern.</li>
+        <li>Stamp the visa page: entry, exit and visa stamps in six shapes, each a little crooked and never quite evenly inked.</li>
+        <li>Copy the link, download each document as a picture, or share your papers with the Eurth forum.</li>
+      </ol>
+      <p>
+        New to the subject? The <a href="/guide/">guide</a> explains how real passports are laid out and what each part is for, the <a href="/glossary/">glossary</a>
+        has the words, and the <a href="/templates/">templates</a> give you twelve states to start from.
+      </p>
+
+      <h2>For fiction only</h2>
+      <p>
+        Real identity documents protect real people, so Passport stays plainly on the side of make-believe. Every data page and card says SPECIMEN across it, and
+        that can’t be switched off. Portraits are drawings, never photographs. Real countries are turned away. And where a real passport has lines for a machine
+        to read, these have a strip that says what they are: fictional, and not a travel document. The <a href="/guide/#why-passport-is-for-fiction-only">guide</a>
+        says why.
+      </p>
+
+      <h2>Questions</h2>
+      <dl>
+        {
+          faq.map((item) => (
+            <>
+              <dt>{item.q}</dt>
+              <dd>{item.a}</dd>
+            </>
+          ))
+        }
+      </dl>
+    </section>
+  </div>
+
+  <Fragment slot="inspirations">Passport takes after its siblings Flagwright and Governmint; every emblem, portrait and pattern is drawn by code written for it.</Fragment>
+</Page>
+
+<style>
+  .intro {
+    gap: var(--space-2);
+  }
+</style>

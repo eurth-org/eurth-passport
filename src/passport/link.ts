@@ -1,7 +1,7 @@
 /**
  * A design lives in its link: the query string holds everything, so sharing papers is sharing a
  * link, and nothing is kept on a server. Only what differs from the opening design is written,
- * as compact JSON in base64url, behind a version number: ?p=1.eyJzdGF0ZSI6...
+ * as compact JSON in base64url, behind a version number: ?d=1.eyJzdGF0ZSI6...
  *
  * Whatever arrives is checked and clamped before it is drawn: a link is someone else's input.
  */
@@ -9,7 +9,8 @@ import { cleanDesign } from './clean';
 import { defaultDesign, defaultStamp, stampKinds, type Design, type StampKind } from './model';
 
 export const LINK_VERSION = 1;
-export const LINK_PARAM = 'p';
+/** The suite's own name for it, so the shared helpers in @eurth/style read and write the same links. */
+export const LINK_PARAM = 'd';
 /** The profile's limit for a section's link; past this, the profile file carries the design itself. */
 export const MAX_LINK_LENGTH = 4000;
 export const SITE = 'https://passport.eurth.org/';
@@ -109,7 +110,7 @@ export function decodeDesign(value: string): Design | null {
   }
 }
 
-/** The query string for a design: "?p=1.…", or an empty string for the opening design. */
+/** The query string for a design: "?d=1.…", or an empty string for the opening design. */
 export function toQuery(design: Design): string {
   const compact = compactDesign(design);
   return Object.keys(compact).length ? `?${LINK_PARAM}=${encodeDesign(design)}` : '';
@@ -123,7 +124,7 @@ export function fromQuery(search: string): Design | null {
 
 /**
  * The whole link, and whether it is short enough to travel in a profile. It always names the
- * design, the opening one too ("?p=1.e30"), so that a link saved in a profile can be told from
+ * design, the opening one too ("?d=1.e30"), so that a link saved in a profile can be told from
  * a bare address.
  */
 export function designLink(design: Design, site: string = SITE): { url: string; fits: boolean } {
