@@ -5,3 +5,4 @@ dist/
 .lighthouseci/
 .DS_Store
 preview/
+.claude/
