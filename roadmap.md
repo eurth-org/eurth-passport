@@ -6,39 +6,51 @@ Three parts: what comes next, what each release added (newest first), and what's
 
 ## Where to pick up
 
-**15 November 2026.** Phase 1 is done and pushed: the engine in `src/passport/`, the guide, glossary and sources in `src/content/`, and 158 tests, all passing (`npm run check`, `npm test`). There is no site yet. **@eurth/style 1.0.0 and @eurth/profile 1.0.0 are both released**, so the next step is Phase 2, step 14: read HANDBOOK.md in eurth-style and start the site from its starter template.
+**15 November 2026.** The site is built and pushed, on top of @eurth/style 1.0.1 and @eurth/profile 1.0.0: four pages, the designer, the link, the profile file, downloads, sharing, the stamp's thump and the Moon's jacket. `npm run check`, `npm run build`, `npm test` (235 tests, the suite's own included) and `npm run axe` all pass. Nothing is deployed, and nothing will be until the launch workflow opens the door on 19 December 2026 at 00:00 in Brussels.
 
-To look the drawings over before the site exists: `npm run sheet`, then open `preview/index.html`.
+What is left is under "Next", in order. Start with the first item.
+
+To run it: Node 22.23 or newer (`node -v`; on Stijn's Mac, Homebrew's is first with `export PATH="/opt/homebrew/bin:$PATH"`), then `npm run dev`.
 
 Decided on the way (say if you'd rather otherwise):
 
 - **A real country's name is refused, not just noted,** as the issuing state, as a document's title, as the authority and on a stamp's own lines, with the note "That is a real country. Passport only makes papers for invented ones." Whole names only: a holder may be called Jordan and be born in a town called Georgia. Demonyms ("French") are not checked.
 - **Dates are picked in the world's own calendar** (its months, month lengths and era) when the profile has one. Nothing is converted from ours.
 - **A profile's arms are used only if they are pure vector drawing.** An SVG that wraps a photograph, a link or a script is turned away and one of our emblems stands in.
-- **The profile section** holds `link`, `summary`, `colour`, and two keys the schema doesn't name yet, `title` and `svg` (the cover). A design too big for a 4,000-character link travels in the section under `design`. To do: propose `title` and `svg` to eurth-profile as a pull request, and ask there about `design`.
+- **The link is the suite's own form,** `?d=1.…`, so the shared helpers read and write it.
+- **Documents are shown as pictures** (an `<img>` with the description as its alternative text), never as markup in the page. On the visa page each stamp is its own picture over a blank page, so it can be picked, dragged and thumped.
+- **The header shows the yurt and the favicon is the yurt too;** Passport has no mark of its own yet.
 
 ## Next
 
-### Phase 2: the site
-
-14. Start from the starter template in eurth-style; read HANDBOOK.md first, and where it differs from this plan, the handbook wins.
-15. Pages: Designer, Guide, Glossary, Templates, with titles ("Passport: free online fictional passport maker for worldbuilders"), descriptions, canonical links, JSON-LD, sitemap.xml, robots.txt, llms.txt and Open Graph images.
-16. The designer, as a Svelte 5 island: a document picker, the controls for each document, the document on a stage, a "New holder" button, and the stamps laid on a visa page (drag to place).
-17. Save and load: the link, and the profile file (file picker and drag and drop, from @eurth/profile).
-18. Exports: SVG, PNG and WebP of each document, alone and in the handbook's sharing sizes; stamps also on a clear background; Copy link, Copy picture, Copy description, and the Share dialog. Check early that the profile's arms survive the trip into PNG in Safari.
-19. Delight: a stamp thumps onto the page with a tiny shake; "Bring a jacket."; the suite's own touches from @eurth/style. Nothing for reduced motion.
-20. Offline, install, security headers, axe and Lighthouse checks, as the handbook asks.
-21. CI, and the launch workflow: `LAUNCH_AT` is `2026-12-19T00:00:00+01:00`, the scheduled run starts at 22:30 UTC on 18 December, and it also runs by hand. No custom domain and no workers.dev deploy before then.
-22. README (use, development, deployment), docs/feedback-log.md, and the handbook's checklist.
+1. **Look at it with your own eyes.** `npm run dev`, then go through the five tabs, load `tests/fixtures/calderwyn.eurth.json` with Load profile (arms on the cover, dates in the Lantern Reckoning, a Calderwynian holder), save it again, and try the downloads. This has been checked by tests and in Chrome, not by a person.
+2. **Safari and Firefox.** Chrome draws a profile's arms into PNG and WebP correctly. Check the same in Safari (a picture inside an SVG drawn to a canvas has misbehaved there before) and that long names squeeze sensibly in each browser's own fonts.
+3. **The profile's `passport` section:** the schema names `link`, `summary`, `updated` and `colour`. Passport also writes `title`, `svg` (the cover) and, only when a design is too big for a 4,000-character link, `design`. The schema keeps unknown keys, and what Passport writes passes @eurth/profile's own check, but the fields should be proposed to eurth-profile so the schema describes them.
+4. **Lighthouse** runs in CI on `main`; read its first report and fix what it finds. The start page carries the whole designer, so watch its weight.
+5. **The first CI run** on GitHub: the three workflows are the starter's thin callers. Confirm the run is green and that it did not deploy.
+6. **Before the door:** on 18 December the launch workflow starts at 22:30 UTC. If it hasn't started by 22:45 UTC, start it by hand. After the launch, delete `launch.yml`.
 
 ### After launch
 
 - More papers: a visa sticker, a driving licence, a seafarer's book, a laissez-passer.
-- More avatars and emblems.
+- More avatars and emblems, and a mark of Passport's own for the favicon.
+- Random papers: one button for a whole invented state.
+- Undo and redo.
 
 ## Releases
 
 Nothing is live yet: the door opens on 19 December 2026. What is built so far, newest first.
+
+### 15 November 2026: the site (Phase 2; built, not yet live)
+
+- **Started from the starter template** of @eurth/style 1.0.1: Astro, the shared shell, the three workflows as thin callers, `LAUNCH_AT` at 19 December 2026, 00:00 in Brussels, no workers.dev address and no deploy before the door.
+- **Four pages:** the designer, twelve templates (each a link into the designer, with its cover and a stamp drawn at build time), the guide (from `src/content/guide.md`, with its sources and the day it was last updated) and the glossary of 42 terms. Titles, descriptions, canonical links and structured data on each (WebApplication, FAQPage, Article, DefinedTermSet, BreadcrumbList).
+- **The designer** (`src/ui/`): tabs for the cover, the data page, both sides of the card and the stamps; controls for everything the model holds; "New holder" for an invented person; a note, in plain words, when a real country is typed.
+- **The visa page:** every stamp is its own picture over a blank page, exactly where the download draws it. Pick one, drag it, or move it with the arrow keys; up to twelve to a page.
+- **Saving:** the link (`?d=1.…`) follows the papers in the address bar; Load profile and Save profile from @eurth/profile, writing only the `passport` section. A loaded profile brings its name, arms, names and calendar.
+- **Downloads:** SVG, PNG and WebP of each document, as it is or set on a ground in the suite's six sharing sizes; the chosen stamp on its own on a clear ground. Copy link, Copy picture, Copy description and the Share dialog.
+- **Delight:** a stamp thumps onto the page and the page takes the knock (with a low thud when sound is on, and nothing at all for reduced motion); a visa for the Moon gets a second stamp and the toast "Bring a jacket."; "Nice." on the position sliders.
+- **Checks:** 235 tests. Besides Phase 1's: the suite's own (contrast, security headers, privacy, no spoilers, pages, launch date), links read by the shared helpers, what Passport writes checked by @eurth/profile's own validator, stamps on screen where the download draws them, and SPECIMEN kept in every sharing size. axe finds nothing on five pages in both themes.
 
 ### 15 November 2026: the engine and the words (Phase 1; built, not yet live)
 

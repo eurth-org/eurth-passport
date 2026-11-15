@@ -32,6 +32,7 @@
     {/each}
     <label class="eu-btn other" class:eu-btn--selected={preset === 'other'}>
       <input type="color" bind:value={cover.colour} />
+      <span class="eu-swatch" style:--swatch={cover.colour}></span>
       Any other
     </label>
   </div>
@@ -110,14 +111,23 @@
     position: relative;
   }
 
+  /* The colour well covers the whole button, so the button is the target; the swatch shows the colour. */
   .other input {
-    width: var(--space-6);
-    height: var(--space-6);
+    position: absolute;
+    /* Over the button's own border too, so the target is the full 44 pixels. */
+    inset: calc(var(--size-ring) * -0.5);
+    width: calc(100% + var(--size-ring));
+    height: calc(100% + var(--size-ring));
+    margin: 0;
     padding: 0;
-    border: 1px solid var(--line-strong);
-    border-radius: var(--radius-sm);
-    background: none;
+    border: 0;
+    opacity: 0;
     cursor: pointer;
+  }
+
+  .other:has(input:focus-visible) {
+    outline: var(--size-ring) solid var(--focus-ring);
+    outline-offset: var(--size-ring);
   }
 
   .arms,

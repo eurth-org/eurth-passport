@@ -7,7 +7,7 @@
    *     name, a photograph or a machine-readable line never reaches a document (fiction.ts).
    *   - Every document is shown as a picture with its description as the alternative text.
    */
-  import { faDownload, faPlus, faRotateLeft, faStamp, faTrash } from '@fortawesome/free-solid-svg-icons';
+  import { faCheck, faDownload, faPlus, faRotateLeft, faStamp, faTrash } from '@fortawesome/free-solid-svg-icons';
   import { createProfile, getSection, setSection, type EurthProfile } from '@eurth/profile';
   import ProfileButtons from '@eurth/profile/ProfileButtons.svelte';
   import { PICTURE_SIZES, calm, download, fileSlug, playTones, resolveColors, stateFromLocation, stateLink, stateToLocation, svgToPicture, toast } from '@eurth/style';
@@ -177,6 +177,7 @@
       {#each tabs as t (t.id)}
         <label class="eu-pill">
           <input type="radio" name="document" value={t.id} bind:group={tab} />
+          <span class="eu-check"><Icon icon={faCheck} /></span>
           {t.name}
         </label>
       {/each}

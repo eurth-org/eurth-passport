@@ -6,13 +6,22 @@ Passport designs papers for nations that don't exist: passport covers and data p
 
 It is for fiction only. Every data page and card carries a SPECIMEN overprint that can't be switched off, portraits are drawings, real countries are turned away, and nothing it makes can be read by a machine.
 
-Status: the engine and the words are built and tested; the site comes next. The plan, what's built, and exactly where work stands are in the [roadmap](roadmap.md).
+Status: built, waiting for its door. What's built, what's next and what's not planned are in the [roadmap](roadmap.md).
+
+## Using it
+
+- **Pick a document** with the tabs: the cover, the data page, the card's front or back, or the stamps.
+- **Name your state** and change what you like. "New holder" invents a person; the portrait is always one of Passport's own drawings.
+- **Stamps:** add a visa, entry or exit stamp, pick one on the page to change it, and drag it (or use the arrow keys) to place it.
+- **Keep it:** the link in the address bar holds all the papers. Download each document as SVG, PNG or WebP, or save your nation's profile file, which the other Eurth tools read. Loading a profile brings its name, arms, names and calendar.
 
 ## How it works
 
-- The engine in `src/passport/` is plain TypeScript with no browser or framework in it: a set of papers is data, and one function per document draws it as SVG text. The editor to come, the downloads, the template pages and the tests all use those same functions.
+- A static site built with Astro; the designer is a Svelte component that wakes up in the browser. There is no account and no server-side code.
+- The engine in `src/passport/` is plain TypeScript with no browser or framework in it: a set of papers is data, and one function per document draws it as SVG text. The designer, the downloads, the template pages (at build time), the sharing image and the tests all use those same functions.
 - A design lives in its link (`?d=1.…`), which holds only what differs from the opening design, and in the Eurth profile file, where Passport owns the `passport` section. Nothing is stored anywhere else.
-- Whatever arrives from a link or a file is checked and clamped before it is drawn.
+- Whatever arrives from a link or a file is checked and clamped before it is drawn. Documents are shown as pictures, never put into the page as markup.
+- The look, the header and footer, sharing, offline use and the checks come from [@eurth/style](https://style.eurth.org); its handbook is in `node_modules/@eurth/style/HANDBOOK.md`.
 
 ## Fiction only
 
@@ -41,6 +50,13 @@ Four rules, none of them a setting, each held by its own tests in `tests/fiction
 | The profile's `passport` section | `src/passport/profile.ts` |
 | Templates, and the Moon | `src/passport/templates.ts`, `fun.ts` |
 | Guide, glossary, sources | `src/content/` |
+| The designer: state, link, profile, downloads | `src/ui/Designer.svelte` |
+| Controls for the cover, the papers and a stamp | `src/ui/CoverControls.svelte`, `PapersControls.svelte`, `StampControls.svelte` |
+| The visa page on screen: picking and dragging stamps | `src/ui/VisaPage.svelte` |
+| Pages: designer, templates, guide, glossary, 404 | `src/pages/` |
+| Name, address, title, pages | `eurth.config.mjs` |
+| The door's time | `LAUNCH_AT` |
+| Icons and the sharing image | `tools/make-images.mjs` |
 | Tests | `tests/` |
 
 ## Adding to it
@@ -51,14 +67,34 @@ Four rules, none of them a setting, each held by its own tests in `tests/fiction
 
 ## Local development
 
-Node 22 or newer.
+Astro 7 needs Node 22.23 or newer.
 
 ```bash
 npm install
-npm run check    # TypeScript
-npm test         # unit tests
+npm run dev      # dev server on http://localhost:4321
+npm run check    # Astro and TypeScript checks
+npm run build    # static build into dist/, with the security headers and the service worker
+npm test         # unit tests, and the suite's checks of the built site (build first)
+npm run axe      # accessibility checks on every built page, in both themes
+npm run preview  # the built site as Cloudflare serves it, headers included
+npm run images   # remake the icons and the sharing image (needs Google Chrome)
 npm run sheet    # draws every document, emblem, avatar, pattern and stamp to preview/index.html
 ```
+
+## Deployment
+
+The site will run as the `eurth-passport` Worker (static assets only) on the Cloudflare account that holds the eurth.org zone; the custom domain in `wrangler.jsonc` owns the `passport.eurth.org` DNS record.
+
+- **Before the door** (19 December 2026, 00:00 in Brussels) nothing is deployed anywhere: pushes to `main` are checked, built and tested, and that is all.
+- **The launch workflow** (`.github/workflows/launch.yml`) starts at 22:30 UTC on 18 December, builds the site as it will be at the door's time, waits for `LAUNCH_AT` and deploys. If it hasn't started by 22:45 UTC, start it by hand from the Actions tab. Once the site is live, delete that file.
+- **After the door** every green push to `main` deploys, and the nightly run takes in new 1.x releases of `@eurth/style` and `@eurth/profile`.
+- Deploying uses `CLOUDFLARE_API_TOKEN`, an organisation secret; without it the deploy step is skipped with a warning.
+
+## Releasing
+
+1. In the same commits as the work, update [roadmap.md](roadmap.md): move finished items out of Next, and add or extend the release's dated section.
+2. Run `npm run check`, `npm run build`, `npm test` and `npm run axe`.
+3. Bump the version in `package.json`, merge to `main`, and tag it.
 
 ## Credits
 
