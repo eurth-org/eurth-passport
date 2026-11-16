@@ -6,6 +6,7 @@
   import { coverColours, coverInk, foils } from '../passport/colours';
   import { emblems } from '../passport/emblems';
   import { OWN_PICTURE_NOTE, REAL_COUNTRY_NOTE, isRealCountry, vectorOnly } from '../passport/fiction';
+  import { arstotzkaInk } from '../passport/fun';
   import { limits, type Cover } from '../passport/model';
   import { svgDataUrl } from '../passport/render';
   import Choice from './Choice.svelte';
@@ -14,6 +15,7 @@
 
   let {
     cover = $bindable(),
+    stateName,
     hasArms,
     own = $bindable(),
     ownOn = $bindable(),
@@ -21,6 +23,8 @@
     armsUrl = null,
   }: {
     cover: Cover;
+    /** The issuing state, as drawn: one state's covers are stamped in a colour of their own. */
+    stateName: string;
     hasArms: boolean;
     /** The visitor's own emblem, for this visit: kept in memory, never in the design. */
     own: string | null;
@@ -53,7 +57,8 @@
   }
 
   const preset = $derived(coverColours.find((c) => c.hex === cover.colour.toLowerCase())?.id ?? 'other');
-  const foil = $derived(coverInk(cover.colour, cover.foil));
+  const egg = $derived(arstotzkaInk(stateName, cover.colour));
+  const foil = $derived(egg ?? coverInk(cover.colour, cover.foil));
   // Each emblem as it would look on this cover: the cover's colour behind, the foil in front.
   const swatches = $derived(
     emblems.map((e) => ({
@@ -84,7 +89,9 @@
 </fieldset>
 
 <Choice legend="Lettering" name="foil" options={foils} bind:value={cover.foil} />
-{#if foil !== foils.find((f) => f.id === cover.foil)?.hex}
+{#if egg}
+  <p class="eu-help">Arstotzka stamps its covers in red, whatever is chosen here.</p>
+{:else if foil !== foils.find((f) => f.id === cover.foil)?.hex}
   <p class="eu-help">That foil can’t be read on this colour, so the cover is stamped in the nearest thing that can.</p>
 {/if}
 

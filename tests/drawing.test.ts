@@ -7,7 +7,7 @@ import { cleanDesign } from '../src/passport/clean';
 import { contrast, coverInk, hexOf, papers, stampInks } from '../src/passport/colours';
 import { describeCard, describeCover, describeDataPage, describeDocument, describeStamp, describeVisaPage, listOf, stampLines, summarise, theOffice, titleOf, withArticle } from '../src/passport/describe';
 import { chipSymbol, contactPad, emblem, emblems } from '../src/passport/emblems';
-import { ARSTOTZKA_TEXT, MOON_STAMP_TEXT, hasMoonVisa, isArstotzka, isMoonVisa } from '../src/passport/fun';
+import { ARSTOTZKA_COVER, ARSTOTZKA_RED, ARSTOTZKA_TEXT, MOON_STAMP_TEXT, arstotzkaInk, hasMoonVisa, isArstotzka, isMoonVisa } from '../src/passport/fun';
 import { isRealCountry } from '../src/passport/fiction';
 import { cleanStateName } from '../src/passport/clean';
 import { avatarIds, clothesIds, defaultDesign, defaultStamp, emblemIds, foilIds, hairIds, patternIds, skinIds, stampBorders, stampMarks, stampShapes, type Design, type DocumentRef, type Stamp } from '../src/passport/model';
@@ -675,9 +675,10 @@ describe('the Moon', () => {
 });
 
 describe('the other easter egg: Arstotzka', () => {
-  it('knows the state by its name, with or without a form of state around it', () => {
-    for (const name of ['Arstotzka', 'arstotzka', ' ARSTOTZKA ', 'Republic of Arstotzka', 'The Glorious State of Arstotzka', 'Arstotzka, Greatest Country', 'Arstótzka', 'East Arstotzka']) expect(isArstotzka(name), name).toBe(true);
-    for (const name of ['Arstotzkan Union', 'Arstotzkaland', 'Republic of Teland', 'Kolechia', 'Arstot zka', '']) expect(isArstotzka(name), name).toBe(false);
+  it('knows the state by its name, however it is written', () => {
+    const yes = ['Arstotzka', 'arstotzka', ' ARSTOTZKA ', 'Republic of Arstotzka', 'The Glorious State of Arstotzka', 'Arstotzka, Greatest Country', 'Arstótzka', 'East Arstotzka', 'Arstotzkan Union', 'Arstotzkans', 'Arstotska', 'Arstozka', 'Arztotzka', 'Arstotzkia', 'People’s Republic of Arstotska', [0x410, 0x440, 0x441, 0x442, 0x43e, 0x446, 0x43a, 0x430].map((c) => String.fromCodePoint(c)).join('')];
+    for (const name of yes) expect(isArstotzka(name), name).toBe(true);
+    for (const name of ['Republic of Teland', 'Kolechia', 'Arstot zka', 'Arst', 'Aristotle', 'Starstotzka', 'Austria-ish', '']) expect(isArstotzka(name), name).toBe(false);
   });
 
   it('greets it as its border inspector would, and prints its papers like any other invented state’s', () => {
@@ -688,5 +689,34 @@ describe('the other easter egg: Arstotzka', () => {
     const page = renderDataPage(tweak((x) => (x.state.name = 'Arstotzka')));
     expect(textsOf(page)).toContain('ARSTOTZKA');
     expect(page).toContain('data-fiction="specimen"');
+  });
+
+  it('stamps an Arstotzkan cover in red wherever red can be read, whatever foil was chosen', () => {
+    expect(ARSTOTZKA_COVER).toEqual({ colour: '#1a1a1a', emblem: 'star' });
+    expect(contrast(ARSTOTZKA_RED, ARSTOTZKA_COVER.colour)).toBeGreaterThanOrEqual(3);
+    expect(arstotzkaInk('Arstotzka', '#1a1a1a')).toBe(ARSTOTZKA_RED);
+    expect(arstotzkaInk('Republic of Teland', '#1a1a1a')).toBeNull();
+    // Not on a cover where red would vanish: there the usual rule for a readable foil holds.
+    expect(arstotzkaInk('Arstotzka', '#5b1a28')).toBeNull();
+    for (const foil of foilIds) {
+      const cover = renderCover(tweak((x) => Object.assign(x, { state: { name: 'Arstotzka', demonym: 'Arstotzkan' } }, { cover: { ...x.cover, ...ARSTOTZKA_COVER, foil } })));
+      expect(cover, foil).toContain(`stop-color="${ARSTOTZKA_RED}"`);
+      expect(cover, foil).not.toMatch(/#e8c46a|#d5d9dc|#f7f3e8/);
+      expect(problems(cover), foil).toEqual([]);
+    }
+    const burgundy = renderCover(tweak((x) => (x.state.name = 'Arstotzka')));
+    expect(burgundy).not.toContain(ARSTOTZKA_RED);
+    expect(burgundy).toContain('#e8c46a');
+    // The words say what is drawn.
+    expect(describeCover(tweak((x) => Object.assign(x, { state: { name: 'Arstotzka', demonym: 'Arstotzkan' } }, { cover: { ...x.cover, ...ARSTOTZKA_COVER } })))).toContain('A black cover with scarlet lettering');
+    // Every other state's cover is as it was.
+    expect(renderCover(tweak((x) => (x.cover.colour = '#1a1a1a')))).not.toContain(ARSTOTZKA_RED);
+  });
+
+  it('draws nothing of the game’s own: the emblem is one of ours, and no picture is added', () => {
+    const cover = renderCover(tweak((x) => Object.assign(x, { state: { name: 'Arstotzka', demonym: 'Arstotzkan' } }, { cover: { ...x.cover, ...ARSTOTZKA_COVER } })));
+    expect(emblemIds).toContain(ARSTOTZKA_COVER.emblem);
+    expect(cover).not.toMatch(/<image\b/);
+    expect(emblemIds.some((id) => /eagle/.test(id))).toBe(false);
   });
 });

@@ -21,7 +21,7 @@
   import { calendarOf } from '../passport/dates';
   import { describeDocument, describeStamp, titleOf, withArticle } from '../passport/describe';
   import { REAL_COUNTRY_NOTE, captionOf, isRealCountry } from '../passport/fiction';
-  import { ARSTOTZKA_TEXT, MOON_STAMP_TEXT, hasMoonVisa, isArstotzka } from '../passport/fun';
+  import { ARSTOTZKA_COVER, ARSTOTZKA_TEXT, MOON_STAMP_TEXT, hasMoonVisa, isArstotzka } from '../passport/fun';
   import { randomDesign } from '../passport/invent';
   import { compactDesign, expandDesign } from '../passport/link';
   import { MAX_SEED, MAX_STAMPS, defaultDesign, defaultStamp, limits, stampKindNames, stampKinds, type Design, type DocumentRef, type StampKind } from '../passport/model';
@@ -106,12 +106,21 @@
     moon = now;
   });
 
-  // And another: a state called Arstotzka is greeted as its border inspector would be.
+  // And another: a state called Arstotzka is greeted as its border inspector would be. Typed
+  // here, the name also turns the cover black with our star on it (the red lettering follows
+  // from the name wherever it is drawn); papers that arrive in a link keep the cover they came with.
+  const bleak = $derived(isArstotzka(shown.state.name));
   let arstotzka = false;
+  let arrived = false;
   $effect(() => {
-    const now = isArstotzka(shown.state.name);
-    if (now && !arstotzka && ready) toast(ARSTOTZKA_TEXT);
+    const now = bleak;
+    if (!ready) return;
+    if (now && !arstotzka) {
+      toast(ARSTOTZKA_TEXT);
+      if (arrived) Object.assign(design.cover, { ...ARSTOTZKA_COVER, arms: false });
+    }
     arstotzka = now;
+    arrived = true;
   });
 
   /** The signature touch: the stamp thumps onto the page, and the page takes the knock. */
@@ -248,7 +257,7 @@
   }
 </script>
 
-<div class="designer">
+<div class="designer" class:bleak>
   <!-- The tool's own bar: it stays at the top of the window while the page scrolls, and scrolls sideways itself when it is wider than the screen. -->
   <fieldset class="tabs">
     <legend class="eu-visually-hidden">Document</legend>
@@ -276,7 +285,7 @@
       </label>
 
       {#if tab === 'cover'}
-        <CoverControls bind:cover={design.cover} hasArms={arms !== null} bind:own={ownEmblem} bind:ownOn bind:ownFoil {armsUrl} />
+        <CoverControls bind:cover={design.cover} stateName={shown.state.name} hasArms={arms !== null} bind:own={ownEmblem} bind:ownOn bind:ownFoil {armsUrl} />
       {:else if tab === 'stamps'}
         <div class="eu-row">
           {#each stampKinds as kind (kind)}
@@ -408,6 +417,18 @@
 
   .eu-pill:has(input:checked) .off {
     display: none;
+  }
+
+  /* Arstotzka: the colour drains from everything but the papers themselves. */
+  .tabs,
+  .controls,
+  .result > :global(:not(.stage)) {
+    transition: filter 0.6s;
+  }
+
+  .bleak :is(.tabs, .controls),
+  .bleak .result > :global(:not(.stage)) {
+    filter: grayscale(0.9);
   }
 
   /* The picture's size has a label above it: the buttons beside it line up with the box, not with the label. */

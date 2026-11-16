@@ -5,7 +5,7 @@
 import { colourName, coverColours, coverInk, foils, nameOf, papers, printInks, stampInks } from './colours';
 import { addYears, formatDate } from './dates';
 import { emblem } from './emblems';
-import { isMoonVisa, MOON_STAMP_TEXT } from './fun';
+import { arstotzkaInk, isMoonVisa, MOON_STAMP_TEXT } from './fun';
 import { stampKindNames, type Design, type DocumentRef, type Stamp } from './model';
 import { pattern } from './patterns';
 import { describePortrait } from './portraits';
@@ -41,7 +41,7 @@ function coverColourName(hex: string): string {
 }
 
 function foilName(design: Design): string {
-  const used = coverInk(design.cover.colour, design.cover.foil);
+  const used = arstotzkaInk(design.state.name, design.cover.colour) ?? coverInk(design.cover.colour, design.cover.foil);
   const chosen = foils.find((f) => f.hex === used);
   return chosen ? lower(chosen.name) : colourName(used);
 }

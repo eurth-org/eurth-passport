@@ -14,7 +14,7 @@ import { addYears, formatDate } from './dates';
 import { describeDocument, titleOf, type DescribeOptions } from './describe';
 import { chipSymbol, contactPad, emblem } from './emblems';
 import { decorativeStrip, ownPicture, photoSpecimen, specimenOverprint, vectorOnly } from './fiction';
-import { isMoonVisa, MOON_STAMP_TEXT } from './fun';
+import { arstotzkaInk, isMoonVisa, MOON_STAMP_TEXT } from './fun';
 import type { Design, DocumentRef } from './model';
 import { drawPattern } from './patterns';
 import { drawPortrait } from './portraits';
@@ -238,7 +238,7 @@ function coverFinish(w: number, h: number, colour: string, base: string, id: str
 export function renderCover(design: Design, o: RenderOptions = {}): string {
   const { w, h } = sizes.cover;
   const { cover, state } = design;
-  const base = coverInk(cover.colour, cover.foil);
+  const base = arstotzkaInk(state.name, cover.colour) ?? coverInk(cover.colour, cover.foil);
   const finish = coverFinish(w, h, cover.colour, base, prefix(o));
   const foil = finish.foil.paint;
   const two = cover.titles[1].trim().length > 0;
