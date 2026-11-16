@@ -21,7 +21,7 @@
   import { calendarOf } from '../passport/dates';
   import { describeDocument, describeStamp, titleOf, withArticle } from '../passport/describe';
   import { REAL_COUNTRY_NOTE, captionOf, isRealCountry } from '../passport/fiction';
-  import { MOON_STAMP_TEXT, hasMoonVisa } from '../passport/fun';
+  import { ARSTOTZKA_TEXT, MOON_STAMP_TEXT, hasMoonVisa, isArstotzka } from '../passport/fun';
   import { randomDesign } from '../passport/invent';
   import { compactDesign, expandDesign } from '../passport/link';
   import { MAX_SEED, MAX_STAMPS, defaultDesign, defaultStamp, limits, stampKindNames, stampKinds, type Design, type DocumentRef, type StampKind } from '../passport/model';
@@ -104,6 +104,14 @@
     const now = hasMoonVisa(shown.stamps);
     if (now && !moon && ready) toast(MOON_STAMP_TEXT);
     moon = now;
+  });
+
+  // And another: a state called Arstotzka is greeted as its border inspector would be.
+  let arstotzka = false;
+  $effect(() => {
+    const now = isArstotzka(shown.state.name);
+    if (now && !arstotzka && ready) toast(ARSTOTZKA_TEXT);
+    arstotzka = now;
   });
 
   /** The signature touch: the stamp thumps onto the page, and the page takes the knock. */

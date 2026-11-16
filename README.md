@@ -50,7 +50,7 @@ Four rules, none of them a setting, each held by its own tests in `tests/fiction
 | The holder's signature, written from their name | `src/passport/signature.ts` |
 | The link | `src/passport/link.ts` |
 | The profile's `passport` section | `src/passport/profile.ts` |
-| Templates, and the Moon | `src/passport/templates.ts`, `fun.ts` |
+| Templates, and the easter eggs (the Moon, Arstotzka) | `src/passport/templates.ts`, `fun.ts` |
 | Guide, glossary, sources | `src/content/` |
 | The designer: state, link, profile, downloads | `src/ui/Designer.svelte` |
 | Controls for the cover, the papers and a stamp | `src/ui/CoverControls.svelte`, `PapersControls.svelte`, `StampControls.svelte` |

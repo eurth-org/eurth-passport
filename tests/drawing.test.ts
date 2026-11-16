@@ -7,7 +7,9 @@ import { cleanDesign } from '../src/passport/clean';
 import { contrast, coverInk, hexOf, papers, stampInks } from '../src/passport/colours';
 import { describeCard, describeCover, describeDataPage, describeDocument, describeStamp, describeVisaPage, listOf, stampLines, summarise, theOffice, titleOf, withArticle } from '../src/passport/describe';
 import { chipSymbol, contactPad, emblem, emblems } from '../src/passport/emblems';
-import { MOON_STAMP_TEXT, hasMoonVisa, isMoonVisa } from '../src/passport/fun';
+import { ARSTOTZKA_TEXT, MOON_STAMP_TEXT, hasMoonVisa, isArstotzka, isMoonVisa } from '../src/passport/fun';
+import { isRealCountry } from '../src/passport/fiction';
+import { cleanStateName } from '../src/passport/clean';
 import { avatarIds, clothesIds, defaultDesign, defaultStamp, emblemIds, foilIds, hairIds, patternIds, skinIds, stampBorders, stampMarks, stampShapes, type Design, type DocumentRef, type Stamp } from '../src/passport/model';
 import { drawPattern, pattern, patterns } from '../src/passport/patterns';
 import { avatar, avatars, describePortrait, drawPortrait, hairColours, skins } from '../src/passport/portraits';
@@ -669,5 +671,22 @@ describe('the Moon', () => {
     expect(describeStamp(moon.stamps[2]!, moon)).toMatch(/Beside it, a second stamp: “BRING A JACKET\.”$/);
     expect(describeVisaPage(moon)).toMatch(/One more reads “BRING A JACKET\.”$/);
     expect(describeVisaPage(defaultDesign())).not.toContain('JACKET');
+  });
+});
+
+describe('the other easter egg: Arstotzka', () => {
+  it('knows the state by its name, with or without a form of state around it', () => {
+    for (const name of ['Arstotzka', 'arstotzka', ' ARSTOTZKA ', 'Republic of Arstotzka', 'The Glorious State of Arstotzka', 'Arstotzka, Greatest Country', 'Arstótzka', 'East Arstotzka']) expect(isArstotzka(name), name).toBe(true);
+    for (const name of ['Arstotzkan Union', 'Arstotzkaland', 'Republic of Teland', 'Kolechia', 'Arstot zka', '']) expect(isArstotzka(name), name).toBe(false);
+  });
+
+  it('greets it as its border inspector would, and prints its papers like any other invented state’s', () => {
+    expect(ARSTOTZKA_TEXT).toBe('Glory to Arstotzka. Papers, please.');
+    // It is nobody's real country, so the name is printed as typed, SPECIMEN and all.
+    expect(isRealCountry('Arstotzka')).toBe(false);
+    expect(cleanStateName('Arstotzka')).toBe('Arstotzka');
+    const page = renderDataPage(tweak((x) => (x.state.name = 'Arstotzka')));
+    expect(textsOf(page)).toContain('ARSTOTZKA');
+    expect(page).toContain('data-fiction="specimen"');
   });
 });
