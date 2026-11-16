@@ -4,14 +4,14 @@
  */
 import { describe, expect, it } from 'vitest';
 import { cleanDesign } from '../src/passport/clean';
-import { hexOf, papers, stampInks } from '../src/passport/colours';
+import { contrast, coverInk, hexOf, papers, stampInks } from '../src/passport/colours';
 import { describeCard, describeCover, describeDataPage, describeDocument, describeStamp, describeVisaPage, listOf, stampLines, summarise, theOffice, titleOf, withArticle } from '../src/passport/describe';
 import { chipSymbol, contactPad, emblem, emblems } from '../src/passport/emblems';
 import { MOON_STAMP_TEXT, hasMoonVisa, isMoonVisa } from '../src/passport/fun';
-import { avatarIds, clothesIds, defaultDesign, defaultStamp, emblemIds, hairIds, patternIds, skinIds, stampBorders, stampMarks, stampShapes, type Design, type DocumentRef, type Stamp } from '../src/passport/model';
+import { avatarIds, clothesIds, defaultDesign, defaultStamp, emblemIds, foilIds, hairIds, patternIds, skinIds, stampBorders, stampMarks, stampShapes, type Design, type DocumentRef, type Stamp } from '../src/passport/model';
 import { drawPattern, pattern, patterns } from '../src/passport/patterns';
 import { avatar, avatars, describePortrait, drawPortrait, skins } from '../src/passport/portraits';
-import { documentsOf, renderCardBack, renderCardFront, renderCover, renderDataPage, renderDocument, renderStamp, renderVisaPage, sizes, svgDataUrl } from '../src/passport/render';
+import { coverOutline, documentsOf, foilBands, renderCardBack, renderCardFront, renderCover, renderDataPage, renderDocument, renderStamp, renderVisaPage, sizes, svgDataUrl } from '../src/passport/render';
 import { borderNames, drawStamp, markNames, noteStamp, shapeNames, stampBox, stampExtent, stampFace } from '../src/passport/stamps';
 import { MONO, esc, estimateWidth, starPoints, text } from '../src/passport/svg';
 import { template } from '../src/passport/templates';
@@ -84,7 +84,17 @@ describe('emblems', () => {
 
   it('draws the chip symbol and the contact pad', () => {
     expect(problems(wrap(chipSymbol(50, 50, 54, '#e8c46a')))).toEqual([]);
-    expect(chipSymbol(50, 50, 54, '#e8c46a')).toContain('rx="5.4"');
+    // As on a real booklet: a bar above and a bar below, each cut round the circle in the middle, and the circle itself.
+    const chip = chipSymbol(50, 50, 54, '#e8c46a');
+    expect(chip).toContain('data-part="chip"');
+    expect(chip.match(/M[\d.]+ [\d.]+H/g)).toHaveLength(2);
+    expect(chip.match(/A[\d.]+ [\d.]+ 0 0 [01] /g)).toHaveLength(2);
+    expect(chip.match(/<circle\b/g)).toHaveLength(1);
+    // The line across the middle is clear: neither bar reaches the centre line.
+    const edges = [...chip.matchAll(/V([\d.]+)H/g)].map((m) => Number(m[1]));
+    expect(edges).toHaveLength(2);
+    expect(Math.min(...edges)).toBeLessThan(50);
+    expect(Math.max(...edges)).toBeGreaterThan(50);
     expect(problems(wrap(contactPad(10, 10, 84)))).toEqual([]);
   });
 });
@@ -299,9 +309,9 @@ describe('documents', () => {
     expect(textsOf(cover).slice(2)).toEqual(['REPUBLIC OF TELAND', 'PASSPORT']);
     expect(cover).toContain('fill="#5b1a28"');
     expect(cover).toContain('#e8c46a');
-    expect(cover).toContain('rx="5.4"');
+    expect(cover).toContain('data-part="chip"');
     const plain = renderCover(tweak((x) => (x.cover.chip = false)));
-    expect(plain).not.toContain('rx="5.4"');
+    expect(plain).not.toContain('data-part="chip"');
     const two = renderCover(tweak((x) => (x.cover.titles = ['Passport', 'Reispas'])));
     expect(textsOf(two).slice(2)).toEqual(['REPUBLIC OF TELAND', 'PASSPORT', 'REISPAS']);
     for (const id of emblemIds) expect(problems(renderCover(tweak((x) => (x.cover.emblem = id)))), id).toEqual([]);
@@ -316,8 +326,64 @@ describe('documents', () => {
 
   it('stamps a pale cover in something dark, so it can still be read', () => {
     const cover = renderCover(tweak((x) => (x.cover.colour = '#f5f0e0')));
-    expect(cover).toContain('fill="#1a1a1a"');
+    expect(cover).toContain('stop-color="#1a1a1a"');
     expect(cover).not.toContain('#e8c46a');
+  });
+
+  it('gives a cover a square spine and round corners only where it opens; the pages inside stay round', () => {
+    const { w, h } = sizes.cover;
+    const outline = coverOutline(w, h);
+    // From the top of the spine straight along the top edge: no arc at either left corner.
+    expect(outline).toMatch(/^M1 1H\d+a16 16 0 0 1 16 16V\d+a16 16 0 0 1 -16 16H1Z$/);
+    const cover = renderCover(defaultDesign());
+    expect(cover).toContain(`<path d="${outline}" fill="#5b1a28"/>`);
+    expect(cover).not.toMatch(/<rect[^>]*\srx="16"/);
+    for (const page of [renderDataPage(defaultDesign()), renderCardFront(defaultDesign()), renderCardBack(defaultDesign()), renderVisaPage(defaultDesign())]) expect(page).toMatch(/<rect x="1" y="1"[^>]*\srx="1[06]"/);
+  });
+
+  it('stamps the cover in foil that catches the light: one sheet of it across name, emblem, title and chip', () => {
+    const cover = renderCover(defaultDesign());
+    expect(cover).toContain('<linearGradient id="pp-foil" gradientUnits="userSpaceOnUse"');
+    for (const line of ['REPUBLIC OF TELAND', 'PASSPORT']) expect(cover).toMatch(new RegExp(`<text [^>]*fill="url\\(#pp-foil\\)"[^>]*>${line}</text>`));
+    expect(cover).toMatch(/<g data-part="chip" fill="url\(#pp-foil\)">/);
+    // The emblem is drawn in a box of its own, so its foil is the same sheet moved to match.
+    expect(cover).toMatch(/<linearGradient id="pp-foil-e"[^>]*gradientTransform="scale\([\d.]+\) translate\(-[\d.]+ -[\d.]+\)"/);
+    expect(cover).toContain('url(#pp-foil-e)');
+    expect(cover).toContain('<g data-part="foil" filter="url(#pp-press)">');
+    for (const id of emblemIds) expect(renderCover(tweak((x) => (x.cover.emblem = id))), id).toContain('url(#pp-foil-e)');
+  });
+
+  it('keeps every band of the foil readable on its cover', () => {
+    for (const colour of ['#5b1a28', '#1c2c4c', '#1a1a1a', '#1d4a36', '#f5f0e0', '#808080', '#c8a97e', '#2e8b57', '#ffffff', '#000000', '#7a1f2b']) {
+      for (const foil of foilIds) {
+        const base = coverInk(colour, foil);
+        if (contrast(base, colour) < 3) continue;
+        for (const [, band] of foilBands(base, colour)) expect(contrast(band, colour), `${foil} on ${colour}: ${band}`).toBeGreaterThanOrEqual(3);
+      }
+    }
+    // And on the usual dark covers the foil really does vary.
+    expect(new Set(foilBands('#e8c46a', '#5b1a28').map(([, c]) => c)).size).toBeGreaterThan(5);
+  });
+
+  it('gives the cover its wear from a few numbers, not from a picture: cloth, a fold by the spine, a crease', () => {
+    const cover = renderCover(defaultDesign());
+    expect(cover).toContain('<filter id="pp-hide"');
+    expect(cover.match(/<feTurbulence\b/g)).toHaveLength(2);
+    expect(cover).toContain('<g data-part="wear" pointer-events="none">');
+    expect(cover).not.toMatch(/<(?:image|feImage)\b/);
+    expect(problems(cover)).toEqual([]);
+    // Two covers on one page don't share an id.
+    const ids = (svg: string): string[] => [...svg.matchAll(/\sid="([^"]+)"/g)].map((m) => m[1]!);
+    const a = ids(renderCover(defaultDesign(), { idPrefix: 'a' }));
+    const b = ids(renderCover(defaultDesign(), { idPrefix: 'b' }));
+    expect(a.length).toBeGreaterThan(4);
+    expect(a.filter((id) => b.includes(id))).toEqual([]);
+    expect(new Set(a).size).toBe(a.length);
+  });
+
+  it('keeps the cover’s lettering clear of the fold by the spine', () => {
+    const cover = renderCover(tweak((x) => (x.state.name = 'Fenisholt Federation of the North')));
+    for (const m of cover.matchAll(/<text [^>]*textLength="([\d.]+)"/g)) expect(Number(m[1])).toBeLessThanOrEqual(272);
   });
 
   it('fills in the data page from the design', () => {
@@ -401,7 +467,7 @@ describe('descriptions', () => {
     expect(describeCover(d)).toBe(
       'Passport cover of the Republic of Teland. A burgundy cover with gold lettering: the state’s name at the top, a five-pointed star in a ring in the middle, “Passport” below and a chip symbol at the foot.',
     );
-    expect(describeCover(d, true)).toContain('the national arms in the middle');
+    expect(describeCover(d, { armsUsed: true })).toContain('the national arms in the middle');
     const other = tweak((x) => Object.assign(x.cover, { colour: '#1d4a36', foil: 'silver', titles: ['Passport', 'Reispas'], chip: false, emblem: 'ship' }));
     expect(describeCover(other)).toBe('Passport cover of the Republic of Teland. A green cover with silver lettering: the state’s name at the top, a ship under sail in the middle and “Passport” and “Reispas” below.');
     // On a mid-green cover silver can't be read, so the tool stamps it in near-black and says so.

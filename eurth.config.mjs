@@ -22,5 +22,5 @@ export const site = defineSite({
   ],
   repo: 'https://github.com/eurth-org/eurth-passport',
   ogAlt: 'Passport, by Eurth, at passport.eurth.org: the Eurth yurt beside a burgundy passport cover of the invented Republic of Teland, with a gold star in a ring.',
-  llms: 'Passport is for fiction only. Every data page and identity card it draws is overprinted SPECIMEN, portraits are drawings, real countries are turned away, and nothing it makes is machine readable.',
+  llms: 'Passport is for fiction only. Every data page and identity card it draws is overprinted SPECIMEN, portraits are drawings (a visitor’s own photograph is never kept and is overprinted too), real countries are turned away, and nothing it makes is machine readable.',
 });

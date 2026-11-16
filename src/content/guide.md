@@ -1,7 +1,7 @@
 ---
 title: "A guide to passports and identity papers"
 description: "How passports, identity cards, visas and stamps are put together, where they came from, and how to design papers for a fictional state."
-updated: 2026-11-14
+updated: 2026-11-16
 ---
 
 A passport is a small book with one job: it asks a foreign state to let in a person whom another state vouches for. Almost everything in it serves that request, which is why passports from opposite ends of the world look so alike.
@@ -95,10 +95,10 @@ Real identity documents protect real people. They are how someone proves who the
 So Passport keeps a clear line, with four rules that cannot be changed:
 
 1. Every data page and card carries a SPECIMEN overprint, and it cannot be switched off.
-2. There are no photo uploads. Portraits are the tool's own drawings.
+2. No picture is kept. The portraits are the tool's own drawings. You may add a photograph or an emblem of your own for one visit: it stays in your browser, it is never in the link or the profile file, and a photograph always has SPECIMEN printed across it.
 3. There are no real countries in the templates, and the tool declines to print a real country's name as the issuing state, as a document's title or on a stamp.
 4. There is no machine-readable zone. Where a real passport has one, Passport draws a decorative strip that reads "FICTIONAL · NOT A TRAVEL DOCUMENT", with the caption "Decorative strip. Not machine readable."
 
 Passport also offers no print-ready, actual-size output.
 
-None of this gets in the way of worldbuilding. An invented state needs papers that feel right in a story, on a wiki page or at a gaming table, and for that a drawing is enough. We would sooner Passport be plainly a drawing tool for fiction than something that could be mistaken for more.
+None of this gets in the way of worldbuilding. An invented state needs papers that feel right in a story, on a wiki page or at a gaming table. A character's face or your nation's own emblem helps with that, which is why you can add them; the overprint, the invented state and the strip no machine can read are what keep the result plainly fiction. We would sooner Passport be plainly a drawing tool for fiction than something that could be mistaken for more.

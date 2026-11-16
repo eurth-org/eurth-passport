@@ -131,17 +131,25 @@ export const emblems: readonly Emblem[] = [
 export const emblem = (id: string): Emblem => emblems.find((e) => e.id === id) ?? emblems[0]!;
 
 /**
- * The chip symbol from the mock-up: a small mark on the cover that says the booklet holds a chip.
- * Ours is a simple drawing of our own, centred on (cx, cy).
+ * The chip symbol: the small mark on a cover that says the booklet holds a chip. It is drawn as
+ * the mark on real booklets is: a bar above and a bar below, parted by a line across the middle,
+ * with a circle at the centre that the line stops for. Centred on (cx, cy).
  */
 export function chipSymbol(cx: number, cy: number, width: number, colour: string): string {
-  const h = width * 0.64;
-  const stroke = Math.max(1.5, width * 0.055);
-  return (
-    `<g fill="none" stroke="${colour}" stroke-width="${n(stroke)}">` +
-    `<rect x="${n(cx - width / 2)}" y="${n(cy - h / 2)}" width="${n(width)}" height="${n(h)}" rx="${n(width * 0.1)}"/>` +
-    `<circle cx="${n(cx)}" cy="${n(cy)}" r="${n(h * 0.24)}"/></g>`
-  );
+  const h = width * 0.62;
+  const gap = h * 0.11;
+  const ring = h * 0.3;
+  const dot = h * 0.2;
+  const x0 = cx - width / 2;
+  const x1 = cx + width / 2;
+  // Where the line across meets the ring.
+  const reach = Math.sqrt(ring * ring - (gap / 2) * (gap / 2));
+  const bar = (side: 1 | -1): string => {
+    const edge = cy + (side * h) / 2;
+    const inner = cy + (side * gap) / 2;
+    return `M${n(x0)} ${n(edge)}H${n(x1)}V${n(inner)}H${n(cx + reach)}A${n(ring)} ${n(ring)} 0 0 ${side === 1 ? 1 : 0} ${n(cx - reach)} ${n(inner)}H${n(x0)}Z`;
+  };
+  return `<g data-part="chip" fill="${colour}"><path d="${bar(-1)}${bar(1)}"/><circle cx="${n(cx)}" cy="${n(cy)}" r="${n(dot)}"/></g>`;
 }
 
 /** The contact pad drawn on the back of a card: a generic gold square, not any real chip's layout. */

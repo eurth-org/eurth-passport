@@ -5,12 +5,15 @@
  *
  * The data page and both sides of the card end with the SPECIMEN overprint. That last line of
  * each function is the rule; there is nothing to pass in that would change it.
+ *
+ * A visitor's own emblem or photograph comes in beside the design (RenderOptions), never in it:
+ * what is saved, linked or written to a profile is the design alone.
  */
-import { TEXT_DARK, coverInk, hexOf, mix, papers, printInks } from './colours';
+import { TEXT_DARK, contrast, coverInk, hexOf, luminance, mix, papers, printInks, shade } from './colours';
 import { addYears, formatDate } from './dates';
-import { describeDocument, titleOf } from './describe';
+import { describeDocument, titleOf, type DescribeOptions } from './describe';
 import { chipSymbol, contactPad, emblem } from './emblems';
-import { decorativeStrip, specimenOverprint, vectorOnly } from './fiction';
+import { decorativeStrip, ownPicture, photoSpecimen, specimenOverprint, vectorOnly } from './fiction';
 import { isMoonVisa, MOON_STAMP_TEXT } from './fun';
 import type { Design, DocumentRef } from './model';
 import { drawPattern } from './patterns';
@@ -30,6 +33,15 @@ export const sizes = {
 export interface RenderOptions {
   /** The profile's arms, as SVG text. Used on the cover only if the design asks and they are pure vector drawing. */
   arms?: string | null;
+  /**
+   * The visitor's own emblem, for this visit: SVG text that is pure vector drawing, or a picture
+   * the tool made from their file (see ownPicture). It stands in place of the emblem and the arms.
+   */
+  emblem?: string | null;
+  /** Stamp the visitor's own emblem into the cover in foil, by its outline, in place of its own colours. */
+  emblemFoil?: boolean;
+  /** The visitor's own photograph, for this visit, already cut to four by five (see ownPicture). */
+  photo?: string | null;
   /** Makes ids unique where several drawings share one page. Letters, digits and hyphens. */
   idPrefix?: string;
   /** For a stamp on its own: on clear (the default) or on a patch of paper. */
@@ -38,9 +50,24 @@ export interface RenderOptions {
 
 const prefix = (o: RenderOptions): string => (o.idPrefix ?? 'pp').replace(/[^A-Za-z0-9-]/g, '') || 'pp';
 
+/** Whether a visitor's own emblem is offered and can be drawn. */
+export function ownEmblemUsed(o: RenderOptions = {}): boolean {
+  return vectorOnly(o.emblem) || ownPicture(o.emblem);
+}
+
+/** Whether a visitor's own photograph is offered and can be drawn. */
+export function photoUsed(o: RenderOptions = {}): boolean {
+  return ownPicture(o.photo);
+}
+
 /** Whether the arms a caller offers will really be drawn on the cover. */
 export function armsUsed(design: Design, o: RenderOptions = {}): boolean {
-  return design.cover.arms && vectorOnly(o.arms);
+  return !ownEmblemUsed(o) && design.cover.arms && vectorOnly(o.arms);
+}
+
+/** What the words about a document need to know of how it is drawn. */
+export function describing(design: Design, o: RenderOptions = {}): DescribeOptions {
+  return { armsUsed: armsUsed(design, o), ownEmblem: ownEmblemUsed(o), photo: photoUsed(o) };
 }
 
 /** An SVG as the address of a picture. Inside an image element the browser draws it and runs none of it. */
@@ -49,23 +76,45 @@ export function svgDataUrl(svg: string): string {
 }
 
 function open(design: Design, ref: DocumentRef, w: number, h: number, o: RenderOptions): string {
-  return svgOpen({ width: w, height: h, title: titleOf(design, ref), desc: describeDocument(design, ref, { armsUsed: armsUsed(design, o) }) });
+  return svgOpen({ width: w, height: h, title: titleOf(design, ref), desc: describeDocument(design, ref, describing(design, o)) });
 }
 
-/** Either the profile's arms, as a picture, or one of our emblems, in a square of `size` centred on (cx, cy). */
-function device(design: Design, o: RenderOptions, cx: number, cy: number, size: number, fg: string, bg: string, opacity = 1): string {
-  const fade = opacity < 1 ? ` opacity="${n(opacity)}"` : '';
-  if (armsUsed(design, o)) {
-    return `<image href="${esc(svgDataUrl(o.arms!))}" x="${n(cx - size / 2)}" y="${n(cy - size / 2)}" width="${n(size)}" height="${n(size)}" preserveAspectRatio="xMidYMid meet"${fade}/>`;
-  }
-  return `<g transform="translate(${n(cx - size / 2)} ${n(cy - size / 2)}) scale(${n(size / 100)})"${fade}>${emblem(design.cover.emblem).draw(fg, bg)}</g>`;
+/** How the cover's foil is handed to the device: its paint, and where a mask for a visitor's own emblem may be kept. */
+interface Foil {
+  /** The foil as paint for our own emblems, which are drawn in a box of 100 moved into place. */
+  inBox: (cx: number, cy: number, size: number) => { defs: string; paint: string };
+  /** The foil as paint for anything drawn straight onto the cover. */
+  paint: string;
+  maskId: string;
 }
+
+/**
+ * The device on a document, in a square of `size` centred on (cx, cy): the visitor's own emblem
+ * if they brought one, or the profile's arms if the design asks, or one of our emblems.
+ */
+function device(design: Design, o: RenderOptions, cx: number, cy: number, size: number, fg: string, bg: string, opacity = 1, foil?: Foil): string {
+  const fade = opacity < 1 ? ` opacity="${n(opacity)}"` : '';
+  const box = `x="${n(cx - size / 2)}" y="${n(cy - size / 2)}" width="${n(size)}" height="${n(size)}"`;
+  if (ownEmblemUsed(o)) {
+    const href = esc(vectorOnly(o.emblem) ? svgDataUrl(o.emblem) : o.emblem!);
+    const picture = `<image href="${href}" ${box} preserveAspectRatio="xMidYMid meet"`;
+    // In foil: the picture's outline is the stamp, and the foil shows through it.
+    if (foil && o.emblemFoil) return `<mask id="${foil.maskId}" mask-type="alpha" maskUnits="userSpaceOnUse" ${box}>${picture}/></mask><rect ${box} fill="${foil.paint}" mask="url(#${foil.maskId})"/>`;
+    return `${picture}${fade}/>`;
+  }
+  if (armsUsed(design, o)) return `<image href="${esc(svgDataUrl(o.arms!))}" ${box} preserveAspectRatio="xMidYMid meet"${fade}/>`;
+  const own = foil?.inBox(cx, cy, size);
+  return `${own?.defs ?? ''}<g transform="translate(${n(cx - size / 2)} ${n(cy - size / 2)}) scale(${n(size / 100)})"${fade}>${emblem(design.cover.emblem).draw(own?.paint ?? fg, bg)}</g>`;
+}
+
+/** The widest a line of lettering on the cover may be: clear of the fold by the spine, and as clear of the other edge. */
+const COVER_MEASURE = 272;
 
 /** The state's name on the cover: on one line, or on two when it is long. */
 function coverName(name: string, cx: number, foil: string): string {
   const shown = name.trim().toUpperCase();
   const words = shown.split(' ');
-  if (Array.from(shown).length <= 26 || words.length < 2) return text(shown, { x: cx, y: 88, size: 21, max: 296, min: 10, fill: foil, anchor: 'middle', spacing: 2 });
+  if (Array.from(shown).length <= 26 || words.length < 2) return text(shown, { x: cx, y: 88, size: 21, max: COVER_MEASURE, min: 10, fill: foil, anchor: 'middle', spacing: 2 });
   // Break at the space that leaves the two lines most alike in length.
   let best = 1;
   let bestGap = Infinity;
@@ -76,24 +125,125 @@ function coverName(name: string, cx: number, foil: string): string {
       bestGap = gap;
     }
   }
-  const line = (content: string, y: number): string => text(content, { x: cx, y, size: 17, max: 296, min: 9, fill: foil, anchor: 'middle', spacing: 1.6 });
+  const line = (content: string, y: number): string => text(content, { x: cx, y, size: 17, max: COVER_MEASURE, min: 9, fill: foil, anchor: 'middle', spacing: 1.6 });
   return line(words.slice(0, best).join(' '), 76) + line(words.slice(best).join(' '), 100);
+}
+
+/** How round a cover is where it opens, and how far the drawing stays in from the edge of the picture. */
+const COVER_RADIUS = 16;
+
+/**
+ * The outline of a booklet's cover: square at the spine on the left, where the pages are bound,
+ * and rounded on the right, where it opens. The pages inside keep four round corners.
+ */
+export function coverOutline(w: number, h: number): string {
+  const r = COVER_RADIUS;
+  return `M1 1H${w - 1 - r}a${r} ${r} 0 0 1 ${r} ${r}V${h - 1 - r}a${r} ${r} 0 0 1 -${r} ${r}H1Z`;
+}
+
+/**
+ * Foil as it catches the light: bands of the foil's own colour, brighter and duller, across the
+ * whole cover. A band that couldn't be read on this cover (under 3:1) is left at the foil's own colour.
+ */
+export function foilBands(base: string, cover: string): [number, string][] {
+  // Dark lettering on a pale cover keeps to the dark: a bright band there would be a band that can't be read.
+  const lift = luminance(base) < 0.2 ? 0.3 : 1;
+  const bands: [number, string][] = [
+    [0, shade(base, -0.34)],
+    [0.16, shade(base, 0.18 * lift)],
+    [0.3, shade(base, -0.16)],
+    [0.46, shade(base, 0.62 * lift)],
+    [0.58, base],
+    [0.76, shade(base, -0.3)],
+    [0.9, shade(base, 0.3 * lift)],
+    [1, shade(base, -0.1)],
+  ];
+  return bands.map(([offset, colour]) => [offset, contrast(colour, cover) >= 3 ? colour : base]);
+}
+
+const foilStops = (base: string, cover: string): string => foilBands(base, cover).map(([offset, colour]) => `<stop offset="${offset}" stop-color="${colour}"/>`).join('');
+
+/**
+ * What makes a cover look handled: the grain of its cloth, a slight roll in the board that the
+ * light picks out, the fold along the spine, a soft crease or two, and foil pressed into it.
+ * All of it is drawn by the browser from a few numbers; none of it is a picture.
+ */
+function coverFinish(w: number, h: number, colour: string, base: string, id: string): { defs: string; hide: string; marks: string; foil: Foil } {
+  const outline = coverOutline(w, h);
+  const light = `<feDistantLight azimuth="232" elevation="64"/>`;
+  const defs =
+    `<defs>` +
+    `<linearGradient id="${id}-foil" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="${w}" y2="${n(h * 0.72)}">${foilStops(base, colour)}</linearGradient>` +
+    `<linearGradient id="${id}-spine" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#000000" stop-opacity=".34"/><stop offset=".5" stop-color="#000000" stop-opacity=".1"/><stop offset="1" stop-color="#000000" stop-opacity="0"/></linearGradient>` +
+    `<linearGradient id="${id}-fall" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffffff" stop-opacity=".09"/><stop offset=".45" stop-color="#ffffff" stop-opacity="0"/><stop offset="1" stop-color="#000000" stop-opacity=".2"/></linearGradient>` +
+    // The cloth and the roll of the board: two layers of noise, each lit from the upper left.
+    `<filter id="${id}-hide" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB">` +
+    `<feTurbulence type="fractalNoise" baseFrequency="1.5" numOctaves="3" seed="7" result="grain"/>` +
+    `<feDiffuseLighting in="grain" surfaceScale="0.9" diffuseConstant="1.12" lighting-color="#ffffff" result="grainLit">${light}</feDiffuseLighting>` +
+    `<feTurbulence type="fractalNoise" baseFrequency="0.004 0.0065" numOctaves="2" seed="23" result="roll"/>` +
+    `<feDiffuseLighting in="roll" surfaceScale="7" diffuseConstant="1.1" lighting-color="#ffffff" result="rollLit">${light}</feDiffuseLighting>` +
+    `<feSpecularLighting in="roll" surfaceScale="7" specularConstant="0.07" specularExponent="26" lighting-color="#ffffff" result="rollShine">${light}</feSpecularLighting>` +
+    `<feBlend in="SourceGraphic" in2="grainLit" mode="multiply" result="clothed"/>` +
+    `<feBlend in="clothed" in2="rollLit" mode="multiply" result="rolled"/>` +
+    `<feComposite in="rollShine" in2="rolled" operator="over" result="lit"/>` +
+    `<feComposite in="lit" in2="SourceGraphic" operator="in"/>` +
+    `</filter>` +
+    // Foil is pressed into the board: a thin shadow under its upper edge, a thin light under its lower.
+    `<filter id="${id}-press" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB">` +
+    `<feOffset in="SourceAlpha" dy="-0.7" result="up"/><feGaussianBlur in="up" stdDeviation="0.4" result="upSoft"/><feFlood flood-color="#000000" flood-opacity=".5"/><feComposite in2="upSoft" operator="in" result="shadow"/>` +
+    `<feOffset in="SourceAlpha" dy="0.7" result="down"/><feGaussianBlur in="down" stdDeviation="0.35" result="downSoft"/><feFlood flood-color="#ffffff" flood-opacity=".16"/><feComposite in2="downSoft" operator="in" result="lip"/>` +
+    `<feMerge><feMergeNode in="shadow"/><feMergeNode in="lip"/><feMergeNode in="SourceGraphic"/></feMerge>` +
+    `</filter>` +
+    `</defs>`;
+  const crease = (d: string, dx: number, dy: number, depth: number): string =>
+    `<path d="${d}" fill="none" stroke="#000000" stroke-opacity="${n(0.22 * depth)}" stroke-width="1" stroke-linecap="round"/>` +
+    `<path d="${d}" transform="translate(${dx} ${dy})" fill="none" stroke="#ffffff" stroke-opacity="${n(0.11 * depth)}" stroke-width=".8" stroke-linecap="round"/>`;
+  const marks =
+    `<g data-part="wear" pointer-events="none">` +
+    `<path d="${outline}" fill="url(#${id}-fall)"/>` +
+    // The spine, and the fold a little way in from it where the cover bends.
+    `<rect x="1" y="1" width="30" height="${h - 2}" fill="url(#${id}-spine)"/>` +
+    `<path d="M27 1V${h - 1}" stroke="#000000" stroke-opacity=".3" stroke-width="1.6"/><path d="M28.6 1V${h - 1}" stroke="#ffffff" stroke-opacity=".11" stroke-width=".9"/>` +
+    // A corner that has been in a pocket, and a bend from being sat on.
+    crease(`M${w - 62} ${h - 1.5}Q${w - 34} ${h - 30} ${w - 1.5} ${h - 58}`, 0.9, 0.9, 1) +
+    crease(`M40 ${n(h * 0.712)}Q${n(w * 0.42)} ${n(h * 0.69)} ${w - 10} ${n(h * 0.728)}`, 0, 1, 0.5) +
+    `<path d="${outline}" fill="none" stroke="#000000" stroke-opacity=".28" stroke-width="1.2"/>` +
+    `</g>`;
+  const foil: Foil = {
+    paint: `url(#${id}-foil)`,
+    maskId: `${id}-own`,
+    // Our emblems are drawn in a box of 100 and moved into place, so the foil is moved back to match: one sheet of light over the whole cover.
+    inBox: (cx, cy, size) => {
+      const k = size / 100;
+      return {
+        defs: `<linearGradient id="${id}-foil-e" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="${w}" y2="${n(h * 0.72)}" gradientTransform="scale(${n(1 / k)}) translate(${n(-(cx - size / 2))} ${n(-(cy - size / 2))})">${foilStops(base, colour)}</linearGradient>`,
+        paint: `url(#${id}-foil-e)`,
+      };
+    },
+  };
+  return { defs, hide: `<path d="${outline}" fill="${colour}"/><path d="${outline}" fill="${colour}" filter="url(#${id}-hide)"/>`, marks, foil };
 }
 
 export function renderCover(design: Design, o: RenderOptions = {}): string {
   const { w, h } = sizes.cover;
   const { cover, state } = design;
-  const foil = coverInk(cover.colour, cover.foil);
+  const base = coverInk(cover.colour, cover.foil);
+  const finish = coverFinish(w, h, cover.colour, base, prefix(o));
+  const foil = finish.foil.paint;
   const two = cover.titles[1].trim().length > 0;
   const titleY = cover.chip ? (two ? 384 : 398) : two ? 404 : 420;
   return (
     open(design, { kind: 'cover' }, w, h, o) +
-    `<rect x="1" y="1" width="${w - 2}" height="${h - 2}" rx="16" fill="${cover.colour}"/>` +
+    finish.defs +
+    finish.hide +
+    finish.marks +
+    `<g data-part="foil" filter="url(#${prefix(o)}-press)">` +
     coverName(state.name, w / 2, foil) +
-    device(design, o, w / 2, 236, 152, foil, cover.colour) +
-    text(cover.titles[0].toUpperCase(), { x: w / 2, y: titleY, size: 31, max: 296, min: 13, fill: foil, anchor: 'middle', spacing: 6 }) +
-    (two ? text(cover.titles[1].toUpperCase(), { x: w / 2, y: titleY + 30, size: 19, max: 296, min: 10, fill: foil, anchor: 'middle', spacing: 4 }) : '') +
+    device(design, o, w / 2, 236, 152, base, cover.colour, 1, finish.foil) +
+    text(cover.titles[0].toUpperCase(), { x: w / 2, y: titleY, size: 31, max: COVER_MEASURE, min: 13, fill: foil, anchor: 'middle', spacing: 6 }) +
+    (two ? text(cover.titles[1].toUpperCase(), { x: w / 2, y: titleY + 30, size: 19, max: COVER_MEASURE, min: 10, fill: foil, anchor: 'middle', spacing: 4 }) : '') +
     (cover.chip ? chipSymbol(w / 2, 450, 54, foil) : '') +
+    `</g>` +
     `</svg>`
   );
 }
@@ -138,14 +288,15 @@ function sheet(design: Design, w: number, h: number, radius: number, id: string,
   );
 }
 
-function portraitFrame(design: Design, x: number, y: number, w: number, ink: string): string {
+/** The holder's likeness: one of our drawings, or the visitor's own photograph with SPECIMEN across it. */
+function portraitFrame(design: Design, o: RenderOptions, x: number, y: number, w: number, ink: string): string {
   const paper = hexOf(papers, design.papers.paper);
   const h = w * 1.25;
-  return (
-    `<rect x="${n(x)}" y="${n(y)}" width="${n(w)}" height="${n(h)}" fill="${mix(paper, ink, 0.14)}"/>` +
-    `<svg x="${n(x)}" y="${n(y)}" width="${n(w)}" height="${n(h)}" viewBox="0 0 100 125">${drawPortrait(design.papers.portrait)}</svg>` +
-    `<rect x="${n(x)}" y="${n(y)}" width="${n(w)}" height="${n(h)}" fill="none" stroke="${ink}" stroke-width="1"/>`
-  );
+  const box = `x="${n(x)}" y="${n(y)}" width="${n(w)}" height="${n(h)}"`;
+  const likeness = photoUsed(o)
+    ? `<image href="${esc(o.photo!)}" ${box} preserveAspectRatio="xMidYMid slice"/>${photoSpecimen(x, y, w, h)}`
+    : `<svg ${box} viewBox="0 0 100 125">${drawPortrait(design.papers.portrait)}</svg>`;
+  return `<rect ${box} fill="${mix(paper, ink, 0.14)}"/>${likeness}<rect ${box} fill="none" stroke="${ink}" stroke-width="1"/>`;
 }
 
 const holderName = (design: Design): string => `${design.holder.given.trim()} ${design.holder.surname.trim()}`.trim();
@@ -166,7 +317,7 @@ export function renderDataPage(design: Design, o: RenderOptions = {}): string {
     text(state.name.toUpperCase(), { x: 20, y: 28, size: 12, max: 290, min: 7, fill: ink, weight: 700, spacing: 1 }) +
     text(titles, { x: w - 20, y: 28, size: 12, max: 160, min: 6, fill: ink, weight: 700, spacing: 1.5, anchor: 'end' }) +
     `<path d="M20 36H${w - 20}" stroke="${ink}" stroke-width=".8"/>` +
-    portraitFrame(design, 20, 48, 120, ink) +
+    portraitFrame(design, o, 20, 48, 120, ink) +
     field('Type', 'P', left, 54, 60, ink) +
     field('Document no.', p.number.trim(), right, 54, 146, ink, true) +
     field('Surname', holder.surname.trim(), left, 86, 324, ink) +
@@ -202,7 +353,7 @@ export function renderCardFront(design: Design, o: RenderOptions = {}): string {
     text(state.name.toUpperCase(), { x: 64, y: 28, size: 12.5, max: 390, min: 7, fill: ink, weight: 700, spacing: 1 }) +
     text(titles, { x: 64, y: 44, size: 10, max: 390, min: 6, fill: ink, weight: 600, spacing: 2 }) +
     `<path d="M20 56H${w - 20}" stroke="${ink}" stroke-width=".8"/>` +
-    portraitFrame(design, 20, 68, 112, ink) +
+    portraitFrame(design, o, 20, 68, 112, ink) +
     field('Surname', holder.surname.trim(), left, 76, 306, ink) +
     field('Given names', holder.given.trim(), left, 108, 306, ink) +
     field('Nationality', state.demonym.trim(), left, 140, 156, ink) +
@@ -362,7 +513,7 @@ export function renderShare(design: Design, ref: DocumentRef, size: { width: num
   const scale = Math.min((size.width - margin * 2) / w, (size.height - margin * 2) / h);
   const placed = `<svg x="${n((size.width - w * scale) / 2)}" y="${n((size.height - h * scale) / 2)}" width="${n(w * scale)}" height="${n(h * scale)}" viewBox="0 0 ${n(w)} ${n(h)}">`;
   return (
-    svgOpen({ width: size.width, height: size.height, title: titleOf(design, ref), desc: describeDocument(design, ref, { armsUsed: armsUsed(design, o) }) }) +
+    svgOpen({ width: size.width, height: size.height, title: titleOf(design, ref), desc: describeDocument(design, ref, describing(design, o)) }) +
     `<rect width="${n(size.width)}" height="${n(size.height)}" fill="${ground}"/>` +
     (box ? placed + inner.slice(box[0].length) : '') +
     `</svg>`

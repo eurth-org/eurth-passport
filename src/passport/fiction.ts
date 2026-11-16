@@ -4,8 +4,12 @@
  *
  * 1. SPECIMEN is drawn over every data page and card (see render.ts, which calls specimen()
  *    last; the model has no field that could leave it out).
- * 2. No photographs: a portrait is one of our own drawings, picked by id (see portraits.ts), and
- *    a profile's arms are used only when they are pure vector drawing (vectorOnly, below).
+ * 2. No picture is kept. A portrait in a design is one of our own drawings, picked by id (see
+ *    portraits.ts), and a profile's arms are used only when they are pure vector drawing
+ *    (vectorOnly, below). A visitor may lay their own emblem or photograph over a document for
+ *    the visit (ownPicture, below): it is handed to the drawing functions beside the design,
+ *    never inside it, so no link, profile or saved design can hold one. A photograph always
+ *    has SPECIMEN across it (photoSpecimen), besides the overprint on the page.
  * 3. No real countries: not in the presets, and not as the issuing state (isRealCountry).
  * 4. No machine-readable zone: a decorative strip that reads as words stands where a real
  *    passport has one, and no text field can hold a line that looks like one (breakLongRuns).
@@ -26,6 +30,8 @@ export const STRIP_CAPTION = 'Decorative strip. Not machine readable.';
 
 /** Said, kindly, when someone types a real country as the issuing state. */
 export const REAL_COUNTRY_NOTE = 'That is a real country. Passport only makes papers for invented ones.';
+/** Said beside the buttons that take a visitor's own picture. */
+export const OWN_PICTURE_NOTE = 'It stays in this browser for this visit: it isn’t uploaded, and it isn’t in the link or the profile file. It is in the pictures you download.';
 /** Said when a profile's arms can't be used. */
 export const ARMS_NOTE = 'These arms hold a picture or a link, so Passport is using one of its own emblems instead.';
 
@@ -106,6 +112,20 @@ export const MAX_SVG_LENGTH = 524288;
 export function vectorOnly(svg: unknown): svg is string {
   if (typeof svg !== 'string' || svg.length === 0 || svg.length > MAX_SVG_LENGTH) return false;
   if (!/^\s*(?:<\?xml[^>]*\?>\s*)?(?:<!--[\s\S]*?-->\s*)*<svg[\s>]/i.test(svg)) return false;
+  return drawingOnly(withoutCaptions(svg));
+}
+
+/**
+ * An SVG without the words of its title and description, where those are plain text. A caption
+ * is read, never drawn or fetched, so the address of a licence in a credit line (as Arms writes
+ * for its lions) is no reason to turn a drawing away. A caption with any markup in it stays, and
+ * is judged like the rest.
+ */
+function withoutCaptions(svg: string): string {
+  return svg.replace(/<(title|desc)(\s[^<>]*)?>[^<]*<\/\1\s*>/g, '<$1/>');
+}
+
+function drawingOnly(svg: string): boolean {
   // Pictures, pages within pages, scripts, and the doctype tricks that can hide any of them.
   if (/<\s*(?:image|img|foreignObject|script|iframe|object|embed|video|audio|canvas|feImage|a|animate\w*|set|style)\b/i.test(svg)) return false;
   if (/<!(?:DOCTYPE|ENTITY|\[CDATA)/i.test(svg)) return false;
@@ -118,6 +138,54 @@ export function vectorOnly(svg: unknown): svg is string {
   // Anything written as a character reference could be one of the above in disguise.
   if (/&#/.test(svg)) return false;
   return true;
+}
+
+/**
+ * What a drawing says of itself in its description, as plain words: for arms made in Arms, that
+ * is what they show and whose work the figures on them are. Shown beside any document that
+ * carries the arms, so the credit goes where the picture goes. Null when there is none.
+ */
+export function captionOf(svg: unknown): string | null {
+  if (!vectorOnly(svg)) return null;
+  const found = /<desc(?:\s[^<>]*)?>([^<]*)<\/desc\s*>/.exec(svg);
+  if (!found) return null;
+  const words = found[1]!
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;|&apos;/g, "'")
+    .replace(/&lt;/g, '‹')
+    .replace(/&gt;/g, '›')
+    .replace(/&amp;/g, '&')
+    .replace(/\s+/g, ' ')
+    .trim();
+  return words ? Array.from(stripUnsafe(words)).slice(0, 400).join('') : null;
+}
+
+/** The largest picture of their own a visitor may lay over a document, in characters of its address. */
+export const MAX_PICTURE_LENGTH = 3_000_000;
+
+/**
+ * Whether a value is a picture the tool itself has just made from a visitor's file: a PNG, JPEG
+ * or WebP written out in full as a data address, and nothing else. No web address, no SVG, no
+ * markup: the picture can be drawn and can do nothing more.
+ */
+export function ownPicture(value: unknown): value is string {
+  return typeof value === 'string' && value.length <= MAX_PICTURE_LENGTH && /^data:image\/(?:png|jpeg|webp);base64,[A-Za-z0-9+/]+={0,2}$/.test(value);
+}
+
+/**
+ * SPECIMEN across a photograph, in the box the photograph fills. A real face is the one thing
+ * on these papers that isn't invented, so it never stands without the word over it. Like the
+ * overprint below, it takes no options.
+ */
+export function photoSpecimen(x: number, y: number, w: number, h: number): string {
+  const size = w * 0.17;
+  const cx = x + w / 2;
+  const cy = y + h * 0.56;
+  return (
+    `<g data-fiction="photo-specimen" pointer-events="none">` +
+    `<text x="${n(cx)}" y="${n(cy + size * 0.36)}" text-anchor="middle" transform="rotate(-24 ${n(cx)} ${n(cy)})" font-family="${SANS}" font-size="${n(size)}" font-weight="800" ` +
+    `textLength="${n(w * 0.94)}" lengthAdjust="spacingAndGlyphs" fill="${SPECIMEN_RED}" fill-opacity=".5" stroke="#ffffff" stroke-opacity=".75" stroke-width=".5" paint-order="stroke">${SPECIMEN_WORD}</text></g>`
+  );
 }
 
 /**

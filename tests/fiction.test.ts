@@ -1,7 +1,7 @@
 /**
  * Fiction only, always. These tests hold Passport to its four rules:
- * SPECIMEN on every data page and card, no photographs, no real countries, and nothing a
- * machine could read as a travel document.
+ * SPECIMEN on every data page and card, no picture kept (and SPECIMEN across any photograph a
+ * visitor adds), no real countries, and nothing a machine could read as a travel document.
  */
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
@@ -9,6 +9,8 @@ import { cleanDesign, cleanStateName, cleanText } from '../src/passport/clean';
 import { SPECIMEN_RED, contrast, mix, papers } from '../src/passport/colours';
 import {
   ARMS_NOTE,
+  MAX_PICTURE_LENGTH,
+  captionOf,
   MAX_RUN,
   MAX_SVG_LENGTH,
   REAL_COUNTRY_NOTE,
@@ -20,16 +22,19 @@ import {
   isRealCode,
   isRealCountry,
   normaliseName,
+  ownPicture,
+  photoSpecimen,
   specimenOverprint,
   stripUnsafe,
   vectorOnly,
 } from '../src/passport/fiction';
-import { decodeDesign, encodeDesign, expandDesign } from '../src/passport/link';
+import { describeDocument } from '../src/passport/describe';
+import { compactDesign, decodeDesign, designLink, encodeDesign, expandDesign } from '../src/passport/link';
 import { DEFAULT_STATE_NAME, defaultDesign, defaultStamp, type Design } from '../src/passport/model';
 import { generateHolder, generateNumber, givenNames, places, surnames } from '../src/passport/names';
-import { designFromProfile, readProfile } from '../src/passport/profile';
+import { designFromProfile, nextSection, passportSection, readProfile, withPassport } from '../src/passport/profile';
 import { alpha2, alpha3, countryNames, travelCodes } from '../src/passport/realworld';
-import { armsUsed, renderCardBack, renderCardFront, renderCover, renderDataPage, renderDocument, sizes } from '../src/passport/render';
+import { armsUsed, describing, ownEmblemUsed, photoUsed, renderCardBack, renderCardFront, renderCover, renderDataPage, renderDocument, renderShare, sizes } from '../src/passport/render';
 import { templates } from '../src/passport/templates';
 import { drawAll, everyTextField, problems, randomDesign, specimenKinds } from './helpers/designs';
 import { ICAO_SPECIMEN_TD3, checkDigit, mrzFindings, mrzShape, mrzValid, textsOf } from './helpers/mrz';
@@ -114,8 +119,13 @@ describe('rule 1: SPECIMEN on every data page and card, and no way to switch it 
   });
 });
 
-describe('rule 2: no photographs', () => {
-  it('draws no picture element in any document of 300 designs when no arms are given', () => {
+// A picture as the tool itself makes one from a visitor's file: tiny, but shaped like the real thing.
+const PHOTO = 'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAMCAgICAgMCAgIDAwMDBAYEBAQEBAgGBgUGCQgKCgkICQkKDA8MCgsOCwkJDRENDg8QEBEQCgwSExIQEw8QEBD/yQALCAABAAEBAREA/8wABgAQEAX/2gAIAQEAAD8A0s8g/9k=';
+const LOGO = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
+const visitors = { emblem: LOGO, photo: PHOTO };
+
+describe('rule 2: no picture is kept', () => {
+  it('draws no picture element in any document of 300 designs when the visitor brings none', () => {
     for (const seed of SEEDS) {
       for (const { ref, svg } of drawAll(randomDesign(seed))) {
         expect(svg, ref.kind).not.toMatch(/<(?:image|img|foreignObject|object|embed|iframe|script|use)\b/);
@@ -125,7 +135,7 @@ describe('rule 2: no photographs', () => {
     }
   });
 
-  it('takes a portrait only from its own list of drawings', () => {
+  it('has no place in a design for a picture: a portrait there is one of its own drawings, by id', () => {
     const tries = ['data:image/png;base64,iVBORw0KGgo=', 'https://example.org/me.jpg', '<image href="x"/>', '../photo.png', 42, null, { src: 'x' }];
     for (const avatar of tries) {
       const design = cleanDesign({ papers: { portrait: { avatar, photo: avatar, src: avatar, image: avatar, href: avatar } }, holder: { photo: avatar, portrait: avatar } });
@@ -208,6 +218,155 @@ describe('rule 2: no photographs', () => {
     for (const { ref, svg } of drawAll(asks, { arms: photo })) expect(svg, ref.kind).not.toMatch(/<image\b|base64/);
     const doesNotAsk = cleanDesign({ cover: { arms: false } });
     expect(renderCover(doesNotAsk, { arms: calderwyn.arms.svg })).not.toMatch(/<image\b/);
+  });
+
+  it('accepts arms as Arms writes them: a credit line with a licence’s address is words, not a link', () => {
+    const arms = (desc: string): string =>
+      `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 600 720" role="img" aria-label="Azure, a lion Or"><title>Azure, a lion Or</title>${desc}<defs><symbol id="lion" viewBox="0 0 10 10"><path d="M0 0h10v10z"/></symbol></defs><use href="#lion" xlink:href="#lion"/></svg>`;
+    const credited = arms('<desc>A blue shield with a gold lion. &quot;Lion&quot; by Sodacan, from Wikimedia Commons, CC BY-SA 3.0 (https://creativecommons.org/licenses/by-sa/3.0/), recoloured.</desc>');
+    expect(vectorOnly(credited)).toBe(true);
+    expect(readProfile({ meta: { schema: 1, nation: 'Teland' }, arms: { svg: credited } })).toMatchObject({ arms: credited, notes: [] });
+    // The credit travels with the arms: the whole drawing, caption and all, is what goes on the cover.
+    const href = /<image href="data:image\/svg\+xml;charset=utf-8,([^"]+)"/.exec(renderCover(cleanDesign({ cover: { arms: true } }), { arms: credited }))![1]!;
+    expect(decodeURIComponent(href.replace(/&#39;/g, "'"))).toContain('CC BY-SA 3.0 (https://creativecommons.org/licenses/by-sa/3.0/)');
+    // And it can be read out, as plain words, to show beside the papers.
+    expect(captionOf(credited)).toBe('A blue shield with a gold lion. "Lion" by Sodacan, from Wikimedia Commons, CC BY-SA 3.0 (https://creativecommons.org/licenses/by-sa/3.0/), recoloured.');
+    expect(captionOf(arms(''))).toBeNull();
+    expect(captionOf(arms('<desc>&lt;b&gt;bold&lt;/b&gt; &amp; plain</desc>'))).toBe('‹b›bold‹/b› & plain');
+    expect(captionOf('<svg xmlns="http://www.w3.org/2000/svg"><desc>x</desc><image href="face.jpg"/></svg>')).toBeNull();
+    expect(captionOf(LOGO)).toBeNull();
+    // Only plain words are let through. Markup in a caption is judged like markup anywhere.
+    expect(vectorOnly(arms('<desc><image href="https://example.org/face.jpg"/></desc>'))).toBe(false);
+    expect(vectorOnly(arms('<desc>fine</desc><title><a href="https://example.org/">x</a></title>'))).toBe(false);
+    expect(vectorOnly(arms('<desc>fine</desc><text>https://example.org/</text>'))).toBe(false);
+    expect(vectorOnly(arms('<desc>fine</desc>').replace('aria-label="Azure, a lion Or"', 'aria-label="https://example.org/"'))).toBe(false);
+  });
+
+  it('knows a picture of the visitor’s own by its shape: a PNG, JPEG or WebP written out in full, and nothing else', () => {
+    for (const good of [PHOTO, LOGO, 'data:image/webp;base64,UklGRhIAAABXRUJQVlA4TAYAAAAvQWxvAGs=']) expect(ownPicture(good), good.slice(0, 30)).toBe(true);
+    const bad: Record<string, unknown> = {
+      'a web address': 'https://example.org/me.jpg',
+      'an address without its scheme': '//example.org/me.jpg',
+      'a file name': 'me.jpg',
+      'an SVG': 'data:image/svg+xml;base64,PHN2Zy8+',
+      'an SVG as text': 'data:image/svg+xml;charset=utf-8,%3Csvg%2F%3E',
+      'a page': 'data:text/html;base64,PGI+',
+      'a picture with something after it': `${LOGO}" onload="x()`,
+      'a picture with a space in it': LOGO.replace('iVBOR', 'iVB OR'),
+      'a picture with markup in it': `${LOGO}<script>`,
+      'a picture with a setting': 'data:image/png;charset=utf-8;base64,iVBORw0KGgo=',
+      'a picture that is not base64': 'data:image/png,%89PNG',
+      'a script': 'javascript:alert(1)',
+      'a blob': 'blob:https://example.org/1234',
+      'an empty text': '',
+      'a number': 7,
+      'an object': { src: LOGO },
+      nothing: null,
+      'a picture that is too large': `data:image/png;base64,${'A'.repeat(MAX_PICTURE_LENGTH)}`,
+    };
+    for (const [what, value] of Object.entries(bad)) expect(ownPicture(value), what).toBe(false);
+  });
+
+  it('draws a visitor’s photograph on the data page and the card front, each with SPECIMEN across it', () => {
+    const design = defaultDesign();
+    const boxes = { data: [20, 48, 120, 150], cardFront: [20, 68, 112, 140] } as const;
+    for (const kind of ['data', 'cardFront'] as const) {
+      const svg = renderDocument(design, { kind }, { photo: PHOTO });
+      expect(svg.match(/<image\b/g), kind).toHaveLength(1);
+      expect(svg, kind).toContain(`<image href="${PHOTO}"`);
+      const [x, y, w, h] = boxes[kind];
+      // The word comes straight after the photograph, over it, and in its box.
+      expect(svg, kind).toContain(`preserveAspectRatio="xMidYMid slice"/>${photoSpecimen(x, y, w, h)}`);
+      expect(svg.match(/data-fiction="photo-specimen"/g), kind).toHaveLength(1);
+      expect(svg, kind).not.toContain('viewBox="0 0 100 125"');
+      expect(problems(svg), kind).toEqual([]);
+    }
+    expect(photoSpecimen(20, 48, 120, 150)).toContain(`>${SPECIMEN_WORD}</text>`);
+    expect(photoSpecimen.length).toBe(4);
+    // No other document shows the holder, so none shows the photograph.
+    for (const kind of ['cover', 'cardBack', 'visaPage'] as const) expect(renderDocument(design, { kind }, { photo: PHOTO }), kind).not.toMatch(/<image\b|photo-specimen/);
+    expect(renderDocument(design, { kind: 'stamp', index: 0 }, { photo: PHOTO })).not.toMatch(/<image\b/);
+  });
+
+  it('keeps the page’s own overprint last and whole when a photograph is there, in every size', () => {
+    for (const design of [...SEEDS.slice(0, 40).map(randomDesign), ...templates.map((t) => t.design)]) {
+      for (const kind of ['data', 'cardFront', 'cardBack'] as const) {
+        const { w, h } = kind === 'data' ? sizes.data : sizes.card;
+        const svg = renderDocument(design, { kind }, visitors);
+        expect(svg.endsWith(`${specimenOverprint(w, h)}</svg>`), kind).toBe(true);
+        expect(svg.match(/data-fiction="specimen"/g), kind).toHaveLength(1);
+      }
+    }
+    const share = renderShare(defaultDesign(), { kind: 'data' }, { width: 1080, height: 1080 }, '#002b36', visitors);
+    expect(share).toContain('data-fiction="specimen"');
+    expect(share).toContain('data-fiction="photo-specimen"');
+  });
+
+  it('falls back to its own drawing when what is offered as a photograph is anything else', () => {
+    const design = defaultDesign();
+    const plain = renderDataPage(design);
+    for (const photo of ['https://example.org/me.jpg', 'data:image/svg+xml;base64,PHN2Zy8+', `${PHOTO}" onload="x()`, 'javascript:alert(1)', '', null, undefined, 7 as unknown as string]) {
+      expect(photoUsed({ photo })).toBe(false);
+      expect(renderDataPage(design, { photo })).toBe(plain);
+      expect(renderCardFront(design, { photo })).toBe(renderCardFront(design));
+    }
+  });
+
+  it('puts a visitor’s own emblem where the emblem goes, as one picture the browser draws but never runs', () => {
+    const design = cleanDesign({ cover: { arms: true } });
+    const vector = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><path d="M0 0h10v10z" fill="#c00"/></svg>';
+    for (const emblem of [LOGO, vector]) {
+      expect(ownEmblemUsed({ emblem })).toBe(true);
+      const cover = renderCover(design, { emblem, arms: calderwyn.arms.svg });
+      expect(cover.match(/<image\b/g)).toHaveLength(1);
+      expect(cover).toContain(emblem === LOGO ? `<image href="${LOGO}"` : '<image href="data:image/svg+xml;charset=utf-8,%3Csvg');
+      // It stands in place of the arms as well as of our emblem.
+      expect(armsUsed(design, { emblem, arms: calderwyn.arms.svg })).toBe(false);
+      expect(cover).not.toContain('pp-foil-e');
+      expect(problems(cover)).toEqual([]);
+      expect(describeDocument(design, { kind: 'cover' }, describing(design, { emblem }))).toContain('an emblem of the maker’s own in the middle');
+    }
+    // Stamped in foil: the picture is only a mask, and the foil shows through its outline.
+    const stamped = renderCover(design, { emblem: LOGO, emblemFoil: true });
+    expect(stamped).toMatch(/<mask id="pp-own" mask-type="alpha"[^>]*><image href="data:image\/png;base64,[^"]+"[^>]*\/><\/mask><rect [^>]*fill="url\(#pp-foil\)" mask="url\(#pp-own\)"\/>/);
+    expect(problems(stamped)).toEqual([]);
+  });
+
+  it('falls back to the arms or its own emblem when what is offered as an emblem is anything else', () => {
+    const design = cleanDesign({ cover: { arms: true } });
+    const bad = ['https://example.org/logo.png', 'data:image/svg+xml;base64,PHN2Zy8+', '<svg xmlns="http://www.w3.org/2000/svg"><image href="face.jpg"/></svg>', '<svg xmlns="http://www.w3.org/2000/svg"><script>x()</script></svg>', `${LOGO}"/><script>`, '', null];
+    for (const emblem of bad) {
+      expect(ownEmblemUsed({ emblem })).toBe(false);
+      expect(renderCover(design, { emblem, emblemFoil: true })).toBe(renderCover(design));
+      expect(renderCover(design, { emblem, arms: calderwyn.arms.svg })).toBe(renderCover(design, { arms: calderwyn.arms.svg }));
+    }
+  });
+
+  it('keeps a visitor’s pictures out of everything that is saved: the link, the profile and the design', () => {
+    const design = defaultDesign();
+    const everywhere = { ...visitors, arms: calderwyn.arms.svg, emblemFoil: true } as Record<string, unknown>;
+    const kept = [
+      JSON.stringify(compactDesign(design)),
+      designLink(design).url,
+      encodeDesign(design),
+      JSON.stringify(passportSection(design, everywhere)),
+      JSON.stringify(nextSection({}, design, everywhere)),
+      JSON.stringify(withPassport({ meta: { schema: 1, nation: 'Teland' } }, design, everywhere)),
+      JSON.stringify(cleanDesign({ ...design, photo: PHOTO, emblem: LOGO, cover: { ...design.cover, emblem: LOGO, own: LOGO, logo: LOGO }, papers: { ...design.papers, photo: PHOTO } })),
+    ];
+    for (const text of kept) expect(text).not.toMatch(/base64|data:image\/(?:png|jpeg|webp)/);
+    // The cover saved in the profile is the design's own: our emblem, or the profile's arms, never the visitor's picture.
+    expect(String(passportSection(design, everywhere).svg)).toBe(renderCover(design, { arms: calderwyn.arms.svg, idPrefix: 'cover' }));
+  });
+
+  it('says in words when a photograph or an emblem of the maker’s own is on a document', () => {
+    const design = defaultDesign();
+    const told = describing(design, visitors);
+    expect(told).toEqual({ armsUsed: false, ownEmblem: true, photo: true });
+    for (const kind of ['data', 'cardFront'] as const) expect(describeDocument(design, { kind }, told)).toContain('The portrait is a photograph the maker added, with SPECIMEN across it.');
+    expect(describeDocument(design, { kind: 'data' })).toContain('a drawing, not a photograph');
+    expect(renderDataPage(design, visitors)).toContain('<desc>Passport data page of the Republic of Teland, overprinted SPECIMEN.');
+    expect(renderDataPage(design, visitors)).toContain('a photograph the maker added, with SPECIMEN across it');
   });
 
   it('tells the person, kindly, when a profile’s arms cannot be used', () => {

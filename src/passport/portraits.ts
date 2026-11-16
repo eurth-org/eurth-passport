@@ -1,6 +1,7 @@
 /**
  * Portraits: our own flat drawings, built from a few parts. A holder's portrait is always one of
- * these, picked by id. There is no way to put a photograph on a document, and there won't be.
+ * these, picked by id. A visitor may lay their own photograph over it for the visit (see
+ * fiction.ts); the design itself never holds one.
  *
  * Each is drawn in a box of 100 by 125 (four to five, as a passport photograph is), looking
  * straight ahead with a neutral face, as the rules for such photographs ask.

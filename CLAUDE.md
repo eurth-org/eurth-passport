@@ -31,3 +31,14 @@ Exports: SVG, PNG and WebP of each document; Copy description.
 Signature touch: a stamp thumps onto the page with a tiny shake. Easter egg: a visa for the Moon gets the stamp "Bring a jacket."
 
 Done when the handbook's checklist passes and the fiction-only rules are tested.
+
+## Changes to this brief
+
+Stijn's later decisions. Where one of these and the brief above disagree, the later one stands.
+
+**16 November 2026, after his first look at the designer:**
+
+- Visitors may put **their own photograph** on the data page and the card, and crop and move it; and **their own emblem** on the cover (arms made in Arms included). This replaces "no photo uploads" above. Neither picture is stored: not on a server, not in the browser, not in the link, not in the profile file. They are handed to the drawing beside the design, for the visit only. (Added while building it, and his to overrule: a photograph always has SPECIMEN across it, besides the page's own overprint.)
+- The rest of "Fiction only, always" stands as written: the fixed SPECIMEN overprint, no real country names or codes, no machine-readable zone.
+- The cover looks like a real booklet: a square spine on the left and round corners only where it opens, a slight wrinkle, lettering and emblem in foil that catches the light, and the chip symbol drawn as on real passports. The pages inside keep four round corners.
+- The preview leans towards the pointer and catches the light. A Random button makes a whole set of papers.

@@ -2,16 +2,23 @@
 // The designer, and under it what search engines and newcomers both want: what it is, how to
 // use it, why it is for fiction only, and answers to the usual questions (also given to search
 // engines as structured data).
-import { faqPage, webApplication } from '@eurth/style/build';
+import { faqPage, launchedTools, webApplication } from '@eurth/style/build';
 import Page from '@eurth/style/components/Page.astro';
 import { site } from '../../eurth.config.mjs';
 import Designer from '../ui/Designer.svelte';
 
+// Arms is named, and linked, only once its own door has opened: no page mentions a tool before then.
+const armsUrl = launchedTools().find((tool) => tool.id === 'arms')?.url ?? null;
+
 const faq = [
   { q: 'Is Passport free?', a: 'Yes. There is no account and no paid tier. It is made by the Eurth worldbuilding community for anyone who needs papers for a country that doesn’t exist.' },
   {
-    q: 'Can I make a passport for a real country, or with my own photo?',
-    a: 'No. Passport is for fiction only: it declines the names of real countries, it takes no photographs (portraits are its own drawings), and every data page and card is overprinted SPECIMEN. Nothing it draws can be read by a machine.',
+    q: 'Can I make a passport for a real country?',
+    a: 'No. Passport is for fiction only: it declines the names of real countries, every data page and card is overprinted SPECIMEN, and nothing it draws can be read by a machine.',
+  },
+  {
+    q: 'Can I use my own photo or my own emblem?',
+    a: 'Yes. You can put a photograph of your own on the data page and the card, crop it and move it, and put an emblem or coat of arms of your own on the cover. Both stay in your browser for the visit: they are not uploaded, and they are not in the link or the profile file. A photograph always has SPECIMEN across it.',
   },
   {
     q: 'Where are my papers saved?',
@@ -39,7 +46,7 @@ const faq = [
     </header>
 
     <!-- client:load draws the designer as real HTML first, then wakes it up. -->
-    <Designer client:load siteName={site.name} siteUrl={site.url} />
+    <Designer client:load siteName={site.name} siteUrl={site.url} {armsUrl} />
 
     <section class="eu-prose">
       <h2>How it works</h2>
@@ -57,7 +64,7 @@ const faq = [
       <h2>For fiction only</h2>
       <p>
         Real identity documents protect real people, so Passport stays plainly on the side of make-believe. Every data page and card says SPECIMEN across it, and
-        that can’t be switched off. Portraits are drawings, never photographs. Real countries are turned away. And where a real passport has lines for a machine
+        that can’t be switched off. Portraits are drawings, and a photograph of your own gets SPECIMEN across it too and is never kept. Real countries are turned away. And where a real passport has lines for a machine
         to read, these have a strip that says what they are: fictional, and not a travel document. The <a href="/guide/#why-passport-is-for-fiction-only">guide</a>
         says why.
       </p>

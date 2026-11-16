@@ -4,14 +4,14 @@
 
 Passport designs papers for nations that don't exist: passport covers and data pages, identity cards, and visa, entry and exit stamps. It is one of the free worldbuilding tools by [Eurth](https://eurth.org), a worldbuilding and roleplay community since 2004, and will live at passport.eurth.org.
 
-It is for fiction only. Every data page and card carries a SPECIMEN overprint that can't be switched off, portraits are drawings, real countries are turned away, and nothing it makes can be read by a machine.
+It is for fiction only. Every data page and card carries a SPECIMEN overprint that can't be switched off, no picture of yours is kept, real countries are turned away, and nothing it makes can be read by a machine.
 
 Status: built, waiting for its door. What's built, what's next and what's not planned are in the [roadmap](roadmap.md).
 
 ## Using it
 
 - **Pick a document** with the tabs: the cover, the data page, the card's front or back, or the stamps.
-- **Name your state** and change what you like. "New holder" invents a person; the portrait is always one of Passport's own drawings.
+- **Name your state** and change what you like, or press **Random** for a whole invented one. "New holder" invents a person. The portrait is one of Passport's own drawings, or a photograph of your own that you crop and move; the cover takes one of our emblems, your nation's arms from its profile, or an emblem of your own (arms made in Arms work as they are). Your own pictures stay in the browser for the visit.
 - **Stamps:** add a visa, entry or exit stamp, pick one on the page to change it, and drag it (or use the arrow keys) to place it.
 - **Keep it:** the link in the address bar holds all the papers. Download each document as SVG, PNG or WebP, or save your nation's profile file, which the other Eurth tools read. Loading a profile brings its name, arms, names and calendar.
 
@@ -28,7 +28,7 @@ Status: built, waiting for its door. What's built, what's next and what's not pl
 Four rules, none of them a setting, each held by its own tests in `tests/fiction.test.ts`:
 
 1. **SPECIMEN** is drawn last on every data page and card. The model has no field for it.
-2. **No photographs.** A portrait is one of our own drawings, picked by id. A profile's arms are used only if they are pure vector drawing.
+2. **No picture is kept.** A portrait in a design is one of our own drawings, picked by id, and a profile's arms are used only if they are pure vector drawing. A visitor's own emblem or photograph is handed to the drawing beside the design for the visit, never inside it, so no link or profile can hold one; a photograph always has SPECIMEN across it.
 3. **No real countries.** Not in the templates, and not as an issuing state, a title or a stamp's own line.
 4. **Nothing a machine could read.** A decorative strip that says "FICTIONAL · NOT A TRAVEL DOCUMENT" stands where a real passport has its machine-readable zone, and no text field can hold a line that looks like one.
 
@@ -46,12 +46,14 @@ Four rules, none of them a setting, each held by its own tests in `tests/fiction
 | Drawing each document as SVG | `src/passport/render.ts`, `svg.ts` |
 | Descriptions in words | `src/passport/describe.ts` |
 | Dates in the world's calendar, holder names | `src/passport/dates.ts`, `names.ts`, `random.ts` |
+| Random: a whole invented state | `src/passport/invent.ts` |
 | The link | `src/passport/link.ts` |
 | The profile's `passport` section | `src/passport/profile.ts` |
 | Templates, and the Moon | `src/passport/templates.ts`, `fun.ts` |
 | Guide, glossary, sources | `src/content/` |
 | The designer: state, link, profile, downloads | `src/ui/Designer.svelte` |
 | Controls for the cover, the papers and a stamp | `src/ui/CoverControls.svelte`, `PapersControls.svelte`, `StampControls.svelte` |
+| A visitor's own emblem and photograph: reading the file, cropping | `src/ui/pictures.ts`, `PhotoControls.svelte` |
 | The visa page on screen: picking and dragging stamps | `src/ui/VisaPage.svelte` |
 | Pages: designer, templates, guide, glossary, 404 | `src/pages/` |
 | Name, address, title, pages | `eurth.config.mjs` |

@@ -48,9 +48,20 @@ function foilName(design: Design): string {
 
 const titlesOf = (titles: readonly [string, string]): string => listOf(titles.map((t) => t.trim()).filter(Boolean).map((t) => `“${t}”`));
 
-export function describeCover(design: Design, armsUsed = false): string {
+/** The device on the cover, in words. */
+function devicePhrase(design: Design, options: DescribeOptions): string {
+  if (options.ownEmblem) return 'an emblem of the maker’s own';
+  return options.armsUsed ? 'the national arms' : emblem(design.cover.emblem).phrase;
+}
+
+/** The likeness on a data page or card, in words. */
+function portraitPhrase(design: Design, options: DescribeOptions): string {
+  return options.photo ? 'a photograph the maker added, with SPECIMEN across it' : describePortrait(design.papers.portrait);
+}
+
+export function describeCover(design: Design, options: DescribeOptions = {}): string {
   const { cover, state } = design;
-  const device = armsUsed ? 'the national arms' : emblem(cover.emblem).phrase;
+  const device = devicePhrase(design, options);
   const parts = [`the state’s name at the top`, `${device} in the middle`, `${titlesOf(cover.titles)} below`];
   if (cover.chip) parts.push('a chip symbol at the foot');
   return `Passport cover of ${withArticle(state.name)}. A ${coverColourName(cover.colour)} cover with ${foilName(design)} lettering: ${listOf(parts)}.`;
@@ -64,20 +75,20 @@ function paperPhrase(design: Design): string {
 
 const fullName = (design: Design): string => `${design.holder.given.trim()} ${design.holder.surname.trim()}`.trim();
 
-export function describeDataPage(design: Design): string {
+export function describeDataPage(design: Design, options: DescribeOptions = {}): string {
   const { holder, papers: p, state, calendar } = design;
   const expires = addYears(p.issued, p.years, calendar);
   return (
     `Passport data page of ${withArticle(state.name)}, overprinted SPECIMEN. ` +
     `Holder: ${fullName(design)}, ${state.demonym.trim()}, born ${formatDate(holder.born, calendar)} in ${holder.birthplace.trim()}. ` +
     `Document number ${p.number.trim()}, issued ${formatDate(p.issued, calendar)}, expires ${formatDate(expires, calendar)}, by ${theOffice(p.authority)}. ` +
-    `The portrait is ${describePortrait(p.portrait)}. ` +
+    `The portrait is ${portraitPhrase(design, options)}. ` +
     `Printed on ${paperPhrase(design)}. ` +
     `Where a real passport has a machine-readable zone, this one has a decorative strip that reads “Fictional · not a travel document”.`
   );
 }
 
-export function describeCard(design: Design, side: 'front' | 'back'): string {
+export function describeCard(design: Design, side: 'front' | 'back', options: DescribeOptions = {}): string {
   const { holder, papers: p, state, calendar, card } = design;
   const expires = addYears(p.issued, p.years, calendar);
   const head = `Identity card of ${withArticle(state.name)}, ${side}, titled ${titlesOf(card.titles)} and overprinted SPECIMEN. `;
@@ -86,7 +97,7 @@ export function describeCard(design: Design, side: 'front' | 'back'): string {
       head +
       `Holder: ${fullName(design)}, ${state.demonym.trim()}, born ${formatDate(holder.born, calendar)}. ` +
       `Card number ${p.number.trim()}, expires ${formatDate(expires, calendar)}. ` +
-      `The portrait is ${describePortrait(p.portrait)}. Printed on ${paperPhrase(design)}.`
+      `The portrait is ${portraitPhrase(design, options)}. Printed on ${paperPhrase(design)}.`
     );
   }
   return (
@@ -131,6 +142,10 @@ export function describeVisaPage(design: Design): string {
 export interface DescribeOptions {
   /** Whether the profile's arms are drawn on the cover in place of the emblem. */
   armsUsed?: boolean;
+  /** Whether the visitor's own emblem is drawn in place of both. */
+  ownEmblem?: boolean;
+  /** Whether the visitor's own photograph stands where the drawn portrait would. */
+  photo?: boolean;
 }
 
 /** A short name for a document: "Passport cover of the Republic of Teland". */
@@ -158,11 +173,11 @@ export function titleOf(design: Design, ref: DocumentRef): string {
 export function describeDocument(design: Design, ref: DocumentRef, options: DescribeOptions = {}): string {
   switch (ref.kind) {
     case 'cover':
-      return describeCover(design, options.armsUsed);
+      return describeCover(design, options);
     case 'data':
-      return describeDataPage(design);
+      return describeDataPage(design, options);
     case 'cardFront':
-      return describeCard(design, 'front');
+      return describeCard(design, 'front', options);
     case 'cardBack':
       return describeCard(design, 'back');
     case 'stamp': {
@@ -177,7 +192,7 @@ export function describeDocument(design: Design, ref: DocumentRef, options: Desc
 /** One paragraph on the whole set of papers, for the profile's `summary` (at most 600 characters). */
 export function summarise(design: Design, options: DescribeOptions = {}): string {
   const { cover } = design;
-  const device = options.armsUsed ? 'the national arms' : emblem(cover.emblem).phrase;
+  const device = devicePhrase(design, options);
   const count = design.stamps.length;
   const text =
     `A ${coverColourName(cover.colour)} passport with ${foilName(design)} lettering and ${device}, titled ${titlesOf(cover.titles)}. ` +

@@ -11,11 +11,13 @@
   import { svgDataUrl } from '../passport/render';
   import Choice from './Choice.svelte';
   import DateInput from './DateInput.svelte';
+  import PhotoControls from './PhotoControls.svelte';
 
   let {
     holder = $bindable(),
     papers = $bindable(),
     card = $bindable(),
+    photo = $bindable(),
     calendar,
     showCard,
     onnewholder,
@@ -23,6 +25,8 @@
     holder: Holder;
     papers: Papers;
     card: Card;
+    /** The visitor's own photograph, for this visit; null for one of the drawings. */
+    photo: string | null;
     calendar: Calendar;
     /** The card's own titles are shown with the card, not with the passport. */
     showCard: boolean;
@@ -78,20 +82,24 @@
 
 <fieldset class="group">
   <legend class="eu-label">Portrait</legend>
-  <p class="eu-help">A drawing, always: Passport takes no photographs.</p>
-  <div class="grid">
-    {#each faces as face (face.id)}
-      <button type="button" class="eu-btn eu-btn--icon tile" aria-pressed={papers.portrait.avatar === face.id} data-tip={face.name} onclick={() => (papers.portrait.avatar = face.id)}>
-        <img src={face.src} alt="" width="44" height="55" />
-        <span class="eu-visually-hidden">{face.name}</span>
-      </button>
-    {/each}
-  </div>
+  {#if !photo}
+    <div class="grid">
+      {#each faces as face (face.id)}
+        <button type="button" class="eu-btn eu-btn--icon tile" aria-pressed={papers.portrait.avatar === face.id} data-tip={face.name} onclick={() => (papers.portrait.avatar = face.id)}>
+          <img src={face.src} alt="" width="44" height="55" />
+          <span class="eu-visually-hidden">{face.name}</span>
+        </button>
+      {/each}
+    </div>
+  {/if}
+  <PhotoControls bind:photo />
 </fieldset>
 
-<Choice legend="Skin" name="skin" options={skins} bind:value={papers.portrait.skin} />
-<Choice legend="Hair" name="hair" options={hairColours} bind:value={papers.portrait.hair} />
-<Choice legend="Clothes" name="clothes" options={clothesColours} bind:value={papers.portrait.clothes} />
+{#if !photo}
+  <Choice legend="Skin" name="skin" options={skins} bind:value={papers.portrait.skin} />
+  <Choice legend="Hair" name="hair" options={hairColours} bind:value={papers.portrait.hair} />
+  <Choice legend="Clothes" name="clothes" options={clothesColours} bind:value={papers.portrait.clothes} />
+{/if}
 
 <label class="eu-field">
   <span class="eu-label">Document number</span>

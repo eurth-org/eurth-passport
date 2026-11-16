@@ -50,7 +50,8 @@ describe('the guide', () => {
   it('says why Passport is for fiction only, with the tool’s own four rules and its own words', () => {
     expect(lastSection).toContain(SPECIMEN_WORD);
     expect(lastSection).toContain('cannot be switched off');
-    expect(lastSection).toMatch(/no photo uploads/i);
+    expect(lastSection).toMatch(/No picture is kept/);
+    expect(lastSection).toMatch(/a photograph always has SPECIMEN printed across it/);
     expect(lastSection).toMatch(/no real countries/i);
     expect(lastSection).toMatch(/no machine-readable zone/i);
     expect(lastSection).toContain(STRIP_TEXT.split(' · ').slice(0, 2).join(' · '));

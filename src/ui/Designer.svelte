@@ -4,10 +4,12 @@
    *   - The papers live in the link (?d=…), read safely on arrival and kept in step after.
    *   - Nothing is stored: "save" is a link, a picture or the nation's profile file.
    *   - What is typed is kept as typed; what is drawn is the cleaned design, so a real country's
-   *     name, a photograph or a machine-readable line never reaches a document (fiction.ts).
+   *     name or a machine-readable line never reaches a document (fiction.ts).
+   *   - A visitor's own emblem or photograph is held here, in memory, for the visit. It is handed
+   *     to the drawing beside the design and is never part of the link or the profile.
    *   - Every document is shown as a picture with its description as the alternative text.
    */
-  import { faCheck, faDownload, faPlus, faRotateLeft, faStamp, faTrash } from '@fortawesome/free-solid-svg-icons';
+  import { faCheck, faDice, faDownload, faPlus, faRotateLeft, faStamp, faTrash } from '@fortawesome/free-solid-svg-icons';
   import { createProfile, getSection, setSection, type EurthProfile } from '@eurth/profile';
   import ProfileButtons from '@eurth/profile/ProfileButtons.svelte';
   import { PICTURE_SIZES, calm, download, fileSlug, pictureFilename, playTones, resolveColors, stateFromLocation, stateLink, stateToLocation, svgToPicture, toast } from '@eurth/style';
@@ -17,14 +19,15 @@
   import { onMount } from 'svelte';
   import { cleanDesign } from '../passport/clean';
   import { calendarOf } from '../passport/dates';
-  import { describeDocument, describeStamp, titleOf } from '../passport/describe';
-  import { REAL_COUNTRY_NOTE, isRealCountry } from '../passport/fiction';
+  import { describeDocument, describeStamp, titleOf, withArticle } from '../passport/describe';
+  import { REAL_COUNTRY_NOTE, captionOf, isRealCountry } from '../passport/fiction';
   import { MOON_STAMP_TEXT, hasMoonVisa } from '../passport/fun';
+  import { randomDesign } from '../passport/invent';
   import { compactDesign, expandDesign } from '../passport/link';
   import { MAX_SEED, MAX_STAMPS, defaultDesign, defaultStamp, limits, stampKindNames, stampKinds, type Design, type DocumentRef, type StampKind } from '../passport/model';
   import { generateHolder, generateNumber } from '../passport/names';
   import { designFromProfile, nextSection, type ProfileFacts } from '../passport/profile';
-  import { armsUsed, renderDocument, renderShare, renderStamp, sizes, svgDataUrl } from '../passport/render';
+  import { armsUsed, describing, ownEmblemUsed, renderDocument, renderShare, renderStamp, sizes, svgDataUrl, type RenderOptions } from '../passport/render';
   import { stampExtent } from '../passport/stamps';
   import CoverControls from './CoverControls.svelte';
   import PapersControls from './PapersControls.svelte';
@@ -32,7 +35,8 @@
   import VisaPage from './VisaPage.svelte';
 
   // Passed in by the page: browser code never imports eurth.config.mjs (see the note there).
-  let { siteName, siteUrl }: { siteName: string; siteUrl: string } = $props();
+  // armsUrl is where Arms lives, once it is live; null before, so that no page names it early.
+  let { siteName, siteUrl, armsUrl = null }: { siteName: string; siteUrl: string; armsUrl?: string | null } = $props();
 
   const tabs = [
     { id: 'cover', name: 'Cover', file: 'passport-cover' },
@@ -52,13 +56,22 @@
   let thumped = $state<number | null>(null);
   let size = $state('own');
   let ready = $state(false);
+  // The visitor's own pictures, for this visit only.
+  let ownEmblem = $state<string | null>(null);
+  let ownOn = $state(false);
+  let ownFoil = $state(false);
+  let photo = $state<string | null>(null);
 
   const shown = $derived(cleanDesign(design));
   const arms = $derived(facts?.arms ?? null);
+  // What is drawn beside the design: the profile's arms, and whatever the visitor brought.
+  const visit = $derived<RenderOptions>({ arms, emblem: ownOn ? ownEmblem : null, emblemFoil: ownFoil, photo });
   const calendar = $derived(calendarOf(shown.calendar));
   const ref = $derived<DocumentRef>(tab === 'stamps' ? { kind: 'visaPage' } : { kind: tab });
-  const svg = $derived(renderDocument(shown, ref, { arms, idPrefix: 'stage' }));
-  const description = $derived(describeDocument(shown, ref, { armsUsed: armsUsed(shown, { arms }) }));
+  const svg = $derived(renderDocument(shown, ref, { ...visit, idPrefix: 'stage' }));
+  const description = $derived(describeDocument(shown, ref, describing(shown, visit)));
+  // Arms say what they show and whose work their figures are; that goes wherever the arms go.
+  const credit = $derived(tab === 'stamps' ? null : captionOf(ownEmblemUsed(visit) ? visit.emblem : armsUsed(shown, visit) ? arms : null));
   const box = $derived(tab === 'cover' ? sizes.cover : tab === 'data' ? sizes.data : tab === 'stamps' ? sizes.page : sizes.card);
   const stamp = $derived(shown.stamps[chosen]);
   // Before the page has loaded there is no address to read: the site's own, then.
@@ -109,7 +122,43 @@
   function startAgain() {
     design = defaultDesign();
     chosen = 0;
+    ownEmblem = null;
+    ownOn = false;
+    photo = null;
     toast('Fresh papers.');
+  }
+
+  /** A whole new set of papers. A nation loaded from a profile keeps its name, its people and its calendar. */
+  function random() {
+    const keep = profile ? { state: { ...shown.state }, shortName: facts?.commonName, calendar: shown.calendar, arms: shown.cover.arms } : null;
+    design = randomDesign(Math.floor(Math.random() * 2 ** 31), { keep, names: facts?.names, capital: facts?.capital });
+    chosen = 0;
+    toast(keep ? `New papers for ${withArticle(design.state.name)}.` : `Papers for ${withArticle(design.state.name)}, where nobody has ever been.`);
+  }
+
+  // The preview leans towards the pointer and catches the light where it is, as a booklet turned in the hand would.
+  let leaf = $state<HTMLElement | null>(null);
+  let lit = $state(false);
+  // The second, brighter copy of the picture is only made once a pointer has come by.
+  let glow = $state(false);
+
+  function tilt(event: PointerEvent) {
+    if (!leaf || event.pointerType === 'touch' || calm()) return;
+    const box = event.currentTarget instanceof HTMLElement ? event.currentTarget.getBoundingClientRect() : leaf.getBoundingClientRect();
+    const x = Math.min(1, Math.max(0, (event.clientX - box.left) / box.width));
+    const y = Math.min(1, Math.max(0, (event.clientY - box.top) / box.height));
+    leaf.style.setProperty('--turn-x', `${((0.5 - y) * 9).toFixed(2)}deg`);
+    leaf.style.setProperty('--turn-y', `${((x - 0.5) * 11).toFixed(2)}deg`);
+    leaf.style.setProperty('--light-x', `${(x * 100).toFixed(1)}%`);
+    leaf.style.setProperty('--light-y', `${(y * 100).toFixed(1)}%`);
+    glow = true;
+    lit = true;
+  }
+
+  function settle() {
+    lit = false;
+    leaf?.style.removeProperty('--turn-x');
+    leaf?.style.removeProperty('--turn-y');
   }
 
   function addStamp(kind: StampKind) {
@@ -150,7 +199,7 @@
   function picture(): { svg: string; width: number; height: number; name: string } {
     const preset = PICTURE_SIZES.find((p) => p.id === size);
     if (!preset) return { svg, width: box.w * 2, height: box.h * 2, name: slug };
-    return { svg: renderShare(shown, ref, preset, ground, { arms, idPrefix: 'share' }), width: preset.width, height: preset.height, name: `${slug}-${preset.id}` };
+    return { svg: renderShare(shown, ref, preset, ground, { ...visit, idPrefix: 'share' }), width: preset.width, height: preset.height, name: `${slug}-${preset.id}` };
   }
 
   async function save(kind: 'svg' | 'png' | 'webp') {
@@ -194,6 +243,7 @@
           {t.name}
         </label>
       {/each}
+      <button type="button" class="eu-btn" data-click="tumble" data-tip="A whole new set of papers" onclick={random}><Icon icon={faDice} /> Random</button>
       <button type="button" class="eu-btn eu-btn--quiet" data-click="spin" onclick={startAgain}><Icon icon={faRotateLeft} /> Start again</button>
     </div>
   </fieldset>
@@ -208,7 +258,7 @@
       </label>
 
       {#if tab === 'cover'}
-        <CoverControls bind:cover={design.cover} hasArms={arms !== null} />
+        <CoverControls bind:cover={design.cover} hasArms={arms !== null} bind:own={ownEmblem} bind:ownOn bind:ownFoil {armsUrl} />
       {:else if tab === 'stamps'}
         <div class="eu-row">
           {#each stampKinds as kind (kind)}
@@ -234,7 +284,7 @@
           <input class="eu-input" bind:value={design.state.demonym} maxlength={limits.demonym} autocomplete="off" aria-describedby="demonym-help" />
           <span class="eu-help" id="demonym-help">What the people are called.</span>
         </label>
-        <PapersControls bind:holder={design.holder} bind:papers={design.papers} bind:card={design.card} {calendar} showCard={tab !== 'data'} onnewholder={newHolder} />
+        <PapersControls bind:holder={design.holder} bind:papers={design.papers} bind:card={design.card} bind:photo {calendar} showCard={tab !== 'data'} onnewholder={newHolder} />
       {/if}
     </form>
 
@@ -243,16 +293,23 @@
       {#if tab === 'stamps'}
         <VisaPage {shown} {chosen} {thumped} onchoose={(index) => (chosen = index)} onmove={(index, x, y) => Object.assign(design.stamps[index] ?? {}, { x, y })} />
       {:else}
-        <img class="document" class:upright={tab === 'cover'} src={svgDataUrl(svg)} alt={description} width={box.w} height={box.h} />
+        <!-- The lean and the light are for the eye only: nothing here is pressed, and nothing moves for a visitor who asked for calm. -->
+        <div class="stage" class:upright={tab === 'cover'} onpointermove={tilt} onpointerleave={settle} role="presentation">
+          <div class="leaf" class:lit bind:this={leaf}>
+            <img class="document" src={svgDataUrl(svg)} alt={description} width={box.w} height={box.h} />
+            {#if glow}<img class="shine" src={svgDataUrl(svg)} alt="" aria-hidden="true" width={box.w} height={box.h} />{/if}
+          </div>
+        </div>
       {/if}
       <p class="eu-muted" aria-hidden={tab === 'stamps' ? undefined : 'true'}>{description}</p>
+      {#if credit}<p class="eu-help">The arms: {credit}</p>{/if}
 
       <ShareButtons
         url={link}
         title={titleOf(shown, ref)}
         text={`${description} Made with ${siteName}, for a country that doesn’t exist.`}
-        description={() => (tab === 'stamps' && stamp ? `${description} ${describeStamp(stamp, shown)}` : description)}
-        picture={() => svgToPicture(renderShare(shown, ref, { width: 1200, height: 630 }, ground, { arms, idPrefix: 'share' }), { width: 1200, height: 630 })}
+        description={() => (tab === 'stamps' && stamp ? `${description} ${describeStamp(stamp, shown)}` : credit ? `${description} The arms: ${credit}` : description)}
+        picture={() => svgToPicture(renderShare(shown, ref, { width: 1200, height: 630 }, ground, { ...visit, idPrefix: 'share' }), { width: 1200, height: 630 })}
         heading={`Share ${shown.state.name}`}
         said={{ link: 'Link copied: the papers are in it.' }}
       />
@@ -283,7 +340,7 @@
       </div>
       <p class="eu-help">
         The link holds all the papers. The profile file carries your nation from one Eurth tool to the next, and brings its name, arms, names and calendar here;
-        nothing is kept in this browser.
+        nothing is kept in this browser. An emblem or photograph of your own is in the pictures you download, and in neither the link nor the profile.
       </p>
     </section>
   </div>
@@ -323,10 +380,42 @@
     min-width: 0;
   }
 
-  .document {
+  .stage {
+    perspective: calc(var(--size-measure) * 1.6);
+  }
+
+  .leaf {
+    position: relative;
+    transform: rotateX(var(--turn-x, 0deg)) rotateY(var(--turn-y, 0deg));
+    transition: transform 0.3s ease-out;
+  }
+
+  .leaf.lit {
+    transition-duration: 0.08s;
+  }
+
+  .document,
+  .shine {
     display: block;
     width: 100%;
     height: auto;
+  }
+
+  /* The same picture again, brighter, and shown only in a pool of light around the pointer: so it keeps the document's own outline. */
+  .shine {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    filter: brightness(1.7) saturate(1.1);
+    mix-blend-mode: screen;
+    -webkit-mask-image: radial-gradient(circle at var(--light-x, 50%) var(--light-y, 50%), black 0%, transparent 58%);
+    mask-image: radial-gradient(circle at var(--light-x, 50%) var(--light-y, 50%), black 0%, transparent 58%);
+    pointer-events: none;
+    transition: opacity 0.3s;
+  }
+
+  .lit .shine {
+    opacity: 1;
   }
 
   .upright {
