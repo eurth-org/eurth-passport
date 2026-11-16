@@ -123,6 +123,53 @@
     arrived = true;
   });
 
+  // While the state is Arstotzka the whole page goes to the suite's Night theme, and comes back
+  // to what it was after. Nothing is kept: this is the page's own mark, set and unset here.
+  let themeBefore: string | null | undefined;
+  $effect(() => {
+    const root = document.documentElement;
+    if (bleak && themeBefore === undefined) {
+      themeBefore = root.getAttribute('data-theme');
+      root.dataset.theme = 'dark';
+    } else if (!bleak && themeBefore !== undefined) {
+      // Only if it is still as it was left: a visitor who changed the theme meanwhile keeps their choice.
+      if (root.dataset.theme === 'dark') {
+        if (themeBefore === null) root.removeAttribute('data-theme');
+        else root.dataset.theme = themeBefore;
+      }
+      themeBefore = undefined;
+    }
+  });
+
+  // And the preview is drawn small and shown large, in plain squares. On screen only: every
+  // download is the document as it always is.
+  let pixels = $state<string | null>(null);
+  let pixelUrl: string | null = null;
+  const showPixels = (url: string | null): void => {
+    const old = pixelUrl;
+    pixelUrl = url;
+    pixels = url;
+    if (old) URL.revokeObjectURL(old);
+  };
+  $effect(() => {
+    if (!bleak || tab === 'stamps') {
+      showPixels(null);
+      return;
+    }
+    const share = tab === 'cover' ? 0.3 : 0.5;
+    let stale = false;
+    svgToPicture(svg, { width: Math.round(box.w * share), height: Math.round(box.h * share) })
+      .then((blob) => {
+        if (!stale) showPixels(URL.createObjectURL(blob));
+      })
+      .catch(() => {
+        if (!stale) showPixels(null);
+      });
+    return () => {
+      stale = true;
+    };
+  });
+
   /** The signature touch: the stamp thumps onto the page, and the page takes the knock. */
   function thump(index: number) {
     playTones([[98, 0, 0.06], [62, 0.012, 0.05]], { length: 0.16, cutoff: 500 });
@@ -323,8 +370,8 @@
         <!-- The lean and the light are for the eye only: nothing here is pressed, and nothing moves for a visitor who asked for calm. -->
         <div class="stage" class:upright={tab === 'cover'} onpointermove={tilt} onpointerleave={settle} role="presentation">
           <div class="leaf" class:lit bind:this={leaf}>
-            <img class="document" src={svgDataUrl(svg)} alt={description} width={box.w} height={box.h} />
-            {#if glow}<img class="shine" src={svgDataUrl(svg)} alt="" aria-hidden="true" width={box.w} height={box.h} />{/if}
+            <img class="document" class:pixel={pixels !== null} src={pixels ?? svgDataUrl(svg)} alt={description} width={box.w} height={box.h} />
+            {#if glow}<img class="shine" class:pixel={pixels !== null} src={pixels ?? svgDataUrl(svg)} alt="" aria-hidden="true" width={box.w} height={box.h} />{/if}
           </div>
         </div>
       {/if}
@@ -431,6 +478,18 @@
     filter: grayscale(0.9);
   }
 
+  /* And everything goes square and typewritten: no round corner anywhere, the suite's own fixed-width type throughout. */
+  .bleak,
+  .bleak :global(*) {
+    border-radius: 0 !important;
+    font-family: var(--font-mono) !important;
+  }
+
+  /* The preview, drawn small and shown large, keeps its squares. */
+  .pixel {
+    image-rendering: pixelated;
+  }
+
   /* The picture's size has a label above it: the buttons beside it line up with the box, not with the label. */
   .saving {
     align-items: flex-end;
@@ -515,7 +574,9 @@
     }
   }
 
+  /* A width of its own: centred in a column, it would otherwise shrink to its picture's own size, and the pixelled picture is a small one. */
   .upright {
+    width: 100%;
     max-width: calc(var(--size-measure) * 0.5);
     margin: 0 auto;
   }

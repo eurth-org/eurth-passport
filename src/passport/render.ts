@@ -243,6 +243,17 @@ export function renderCover(design: Design, o: RenderOptions = {}): string {
   const foil = finish.foil.paint;
   const two = cover.titles[1].trim().length > 0;
   const titleY = cover.chip ? (two ? 384 : 398) : two ? 404 : 420;
+  // The easter egg: an Arstotzkan cover carries its emblem and nothing else (see fun.ts).
+  if (arstotzkaInk(state.name, cover.colour)) {
+    return (
+      open(design, { kind: 'cover' }, w, h, o) +
+      finish.defs +
+      finish.hide +
+      finish.marks +
+      `<g data-part="foil" filter="url(#${prefix(o)}-press)">${device(design, o, w / 2 + 6, h / 2 - 8, 216, base, cover.colour, 1, finish.foil)}</g>` +
+      `</svg>`
+    );
+  }
   return (
     open(design, { kind: 'cover' }, w, h, o) +
     finish.defs +

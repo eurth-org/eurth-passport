@@ -63,6 +63,10 @@ function portraitPhrase(design: Design, options: DescribeOptions): string {
 export function describeCover(design: Design, options: DescribeOptions = {}): string {
   const { cover, state } = design;
   const device = devicePhrase(design, options);
+  // The easter egg: an Arstotzkan cover carries its emblem and nothing else (see fun.ts).
+  if (arstotzkaInk(state.name, cover.colour)) {
+    return `Passport cover of ${withArticle(state.name)}. A ${coverColourName(cover.colour)} cover that carries ${device} and nothing else${options.ownEmblem ? '' : `, stamped in ${foilName(design)}`}.`;
+  }
   const parts = [`the state’s name at the top`, `${device} in the middle`, `${titlesOf(cover.titles)} below`];
   if (cover.chip) parts.push('a chip symbol at the foot');
   return `Passport cover of ${withArticle(state.name)}. A ${coverColourName(cover.colour)} cover with ${foilName(design)} lettering: ${listOf(parts)}.`;

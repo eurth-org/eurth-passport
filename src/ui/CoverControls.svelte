@@ -90,7 +90,7 @@
 
 <Choice legend="Lettering" name="foil" options={foils} bind:value={cover.foil} />
 {#if egg}
-  <p class="eu-help">Arstotzka stamps its covers in red, whatever is chosen here.</p>
+  <p class="eu-help">Arstotzka stamps its covers in red, whatever is chosen here, and puts nothing on them but the emblem.</p>
 {:else if foil !== foils.find((f) => f.id === cover.foil)?.hex}
   <p class="eu-help">That foil can’t be read on this colour, so the cover is stamped in the nearest thing that can.</p>
 {/if}

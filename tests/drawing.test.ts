@@ -708,9 +708,39 @@ describe('the other easter egg: Arstotzka', () => {
     expect(burgundy).not.toContain(ARSTOTZKA_RED);
     expect(burgundy).toContain('#e8c46a');
     // The words say what is drawn.
-    expect(describeCover(tweak((x) => Object.assign(x, { state: { name: 'Arstotzka', demonym: 'Arstotzkan' } }, { cover: { ...x.cover, ...ARSTOTZKA_COVER } })))).toContain('A black cover with scarlet lettering');
+    expect(describeCover(tweak((x) => Object.assign(x, { state: { name: 'Arstotzka', demonym: 'Arstotzkan' } }, { cover: { ...x.cover, ...ARSTOTZKA_COVER } })))).toBe(
+      'Passport cover of Arstotzka. A black cover that carries a five-pointed star in a ring and nothing else, stamped in scarlet.',
+    );
     // Every other state's cover is as it was.
     expect(renderCover(tweak((x) => (x.cover.colour = '#1a1a1a')))).not.toContain(ARSTOTZKA_RED);
+  });
+
+  it('puts nothing on an Arstotzkan cover but its emblem: no name, no title, no chip', () => {
+    const arstotzkan = (change: (d: Design) => void = () => {}): Design =>
+      tweak((x) => {
+        Object.assign(x, { state: { name: 'Arstotzka', demonym: 'Arstotzkan' } }, { cover: { ...x.cover, ...ARSTOTZKA_COVER, titles: ['Passport', 'Pasport'], chip: true } });
+        change(x);
+      });
+    const cover = renderCover(arstotzkan());
+    expect(cover).not.toMatch(/<text\b/);
+    expect(cover).not.toContain('data-part="chip"');
+    expect(cover.match(/<g data-part="foil"/g)).toHaveLength(1);
+    expect(cover).toContain('url(#pp-foil-e)');
+    expect(problems(cover)).toEqual([]);
+    // Whatever stands for the emblem is the one thing on it: any of ours, or the visitor's own picture.
+    for (const id of emblemIds) expect(renderCover(arstotzkan((x) => (x.cover.emblem = id))), id).not.toMatch(/<text\b|data-part="chip"/);
+    const own = renderCover(arstotzkan(), { emblem: 'data:image/png;base64,iVBORw0KGgo=' });
+    expect(own.match(/<image\b/g)).toHaveLength(1);
+    expect(own).not.toMatch(/<text\b|pp-foil-e/);
+    expect(describeCover(arstotzkan(), { ownEmblem: true })).toBe('Passport cover of Arstotzka. A black cover that carries an emblem of the maker’s own and nothing else.');
+    // The picture still says whose cover it is, for anyone who can't see it.
+    expect(cover).toContain('<title>Passport cover of Arstotzka</title>');
+    // On a cover where red can't be read the joke stands down, and the cover is an ordinary one.
+    const burgundy = renderCover(arstotzkan((x) => (x.cover.colour = '#5b1a28')));
+    expect(textsOf(burgundy).slice(2)).toEqual(['ARSTOTZKA', 'PASSPORT', 'PASPORT']);
+    expect(burgundy).toContain('data-part="chip"');
+    // The papers inside are ordinary too.
+    expect(textsOf(renderDataPage(arstotzkan()))).toEqual(expect.arrayContaining(['ARSTOTZKA', 'Ashdale']));
   });
 
   it('draws nothing of the game’s own: the emblem is one of ours, and no picture is added', () => {

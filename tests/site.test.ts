@@ -270,3 +270,31 @@ describe('the designer’s controls, by the handbook', () => {
     expect(designer).toMatch(/\.saving \{\s*align-items: flex-end;/);
   });
 });
+
+describe('Arstotzka in the designer: dark, colourless, square and pixelled, and all of it on screen only', () => {
+  const designer = readFileSync(new URL('../src/ui/Designer.svelte', import.meta.url), 'utf8');
+
+  it('goes to the suite’s own Night theme while the name stands, and back to what it was after', () => {
+    expect(designer).toContain("root.dataset.theme = 'dark';");
+    expect(designer).toContain("themeBefore = root.getAttribute('data-theme');");
+    expect(designer).toMatch(/if \(themeBefore === null\) root\.removeAttribute\('data-theme'\);\s*else root\.dataset\.theme = themeBefore;/);
+    // Nothing is kept for it: no storage, and not the visit's own choices either.
+    expect(designer).not.toMatch(/localStorage|sessionStorage|setPrefs/);
+  });
+
+  it('uses only the suite’s tokens for the look: its fixed-width type, no colour of its own', () => {
+    const bleak = designer.slice(designer.indexOf('/* Arstotzka: the colour drains'), designer.indexOf("/* The picture's size has a label above it"));
+    expect(bleak).toContain('filter: grayscale(0.9);');
+    expect(bleak).toContain('font-family: var(--font-mono) !important;');
+    expect(bleak).toContain('border-radius: 0 !important;');
+    expect(bleak).toContain('image-rendering: pixelated;');
+    expect(bleak).not.toMatch(/#[0-9a-f]{3,6}\b|rgb\(/i);
+  });
+
+  it('pixels the preview only: what is downloaded, copied or shared is drawn from the document itself', () => {
+    expect(designer).toContain('src={pixels ?? svgDataUrl(svg)}');
+    // The pixelled picture is made from `svg` and never handed on: every way out takes the vector drawing.
+    expect(designer).toMatch(/if \(!preset\) return \{ svg, width: box\.w \* 2/);
+    expect(designer).not.toMatch(/download\([^)]*pixels|picture=\{[^}]*pixels/);
+  });
+});

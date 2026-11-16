@@ -1,7 +1,8 @@
 /**
  * The easter eggs. A visa for the Moon gets a second stamp from a thoughtful official. And a
  * visitor who names their state Arstotzka, after the border post in the game Papers, Please, is
- * greeted the way its inspector would be, and their cover turns black and is stamped in red.
+ * greeted the way its inspector would be: their cover turns black and carries its emblem and
+ * nothing else, stamped in red, and the designer goes dark, colourless and blocky around it.
  * The game's own emblem and look are its maker's: nothing of them is drawn or copied here.
  */
 import { contrast } from './colours';
