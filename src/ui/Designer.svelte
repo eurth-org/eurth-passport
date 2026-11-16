@@ -12,7 +12,7 @@
   import { faCheck, faDice, faDownload, faPlus, faRotateLeft, faStamp, faTrash } from '@fortawesome/free-solid-svg-icons';
   import { createProfile, getSection, setSection, type EurthProfile } from '@eurth/profile';
   import ProfileButtons from '@eurth/profile/ProfileButtons.svelte';
-  import { PICTURE_SIZES, calm, download, fileSlug, pictureFilename, playTones, resolveColors, stateFromLocation, stateLink, stateToLocation, svgToPicture, toast } from '@eurth/style';
+  import { PICTURE_SIZES, download, fileSlug, pictureFilename, playTones, resolveColors, stateFromLocation, stateLink, stateToLocation, svgToPicture, toast } from '@eurth/style';
   import Icon from '@eurth/style/components/Icon.svelte';
   import ShareButtons from '@eurth/style/components/ShareButtons.svelte';
   import tokens from '@eurth/style/tokens.json';
@@ -30,6 +30,7 @@
   import { armsUsed, describing, ownEmblemUsed, renderDocument, renderShare, renderStamp, sizes, svgDataUrl, type RenderOptions } from '../passport/render';
   import { stampExtent } from '../passport/stamps';
   import CoverControls from './CoverControls.svelte';
+  import { still } from './motion';
   import PapersControls from './PapersControls.svelte';
   import StampControls from './StampControls.svelte';
   import VisaPage from './VisaPage.svelte';
@@ -108,7 +109,7 @@
   /** The signature touch: the stamp thumps onto the page, and the page takes the knock. */
   function thump(index: number) {
     playTones([[98, 0, 0.06], [62, 0.012, 0.05]], { length: 0.16, cutoff: 500 });
-    if (calm()) return;
+    if (still()) return;
     thumped = index;
     setTimeout(() => (thumped = null), 450);
   }
@@ -145,7 +146,12 @@
   let glow = $state(false);
 
   function tilt(event: PointerEvent) {
-    if (!leaf || event.pointerType === 'touch' || calm()) return;
+    if (!leaf || event.pointerType === 'touch') return;
+    // Motion switched off, here or on the device: lie flat, and stay flat if it was switched off mid-lean.
+    if (still()) {
+      if (lit) settle();
+      return;
+    }
     const box = event.currentTarget instanceof HTMLElement ? event.currentTarget.getBoundingClientRect() : leaf.getBoundingClientRect();
     const x = Math.min(1, Math.max(0, (event.clientX - box.left) / box.width));
     const y = Math.min(1, Math.max(0, (event.clientY - box.top) / box.height));
@@ -418,6 +424,25 @@
 
   .lit .shine {
     opacity: 1;
+  }
+
+  /* With motion switched off in the footer, or reduced on the device, the page lies flat and no light moves over it, whatever the script last set. */
+  :global(html[data-motion='still']) .leaf {
+    transform: none;
+  }
+
+  :global(html[data-motion='still']) .shine {
+    display: none;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .leaf {
+      transform: none;
+    }
+
+    .shine {
+      display: none;
+    }
   }
 
   .upright {

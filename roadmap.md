@@ -6,7 +6,7 @@ Three parts: what comes next, what each release added (newest first), and what's
 
 ## Where to pick up
 
-**16 November 2026.** The site is built and pushed, on top of @eurth/style 1.3.0 and @eurth/profile 1.0.0: four pages, the designer, the link, the profile file, downloads, sharing, the stamp's thump and the Moon's jacket. Stijn looked at it on 16 November and asked for nine changes, all built the same day (the release section below lists them). `npm run check`, `npm run build`, `npm test` (258 tests, the suite's own included), `npm run axe` and `npm run smoke` all pass. The first build was checked in Chrome, Safari and Firefox; what was checked of the 16 November changes, and in which browser, is under "Next", item 2. Nothing is deployed, and nothing will be until the launch workflow opens the door on 19 December 2026 at 00:00 in Brussels.
+**16 November 2026.** The site is built and pushed, on top of @eurth/style 1.3.0 and @eurth/profile 1.0.0: four pages, the designer, the link, the profile file, downloads, sharing, the stamp's thump and the Moon's jacket. Stijn looked at it on 16 November and asked for nine changes, all built the same day (the release section below lists them). `npm run check`, `npm run build`, `npm test` (263 tests, the suite's own included), `npm run axe` and `npm run smoke` all pass. The first build was checked in Chrome, Safari and Firefox; what was checked of the 16 November changes, and in which browser, is under "Next", item 2. Nothing is deployed, and nothing will be until the launch workflow opens the door on 19 December 2026 at 00:00 in Brussels.
 
 What is left is under "Next", in order. Start with the first item.
 
@@ -35,6 +35,8 @@ Decided on the way (say if you'd rather otherwise):
 5. **CI is green** on GitHub (check, build, test, axe, Lighthouse), and its deploy step holds back until the door, as it should.
 6. **Before the door:** on 18 December the launch workflow starts at 22:30 UTC. If it hasn't started by 22:45 UTC, start it by hand. After the launch, delete `launch.yml`.
 
+7. **A fault to mend in @eurth/style, not here:** `calm()` and `soundOn()` answer from the script's own memory, so on a dev server (two copies of the script) a tool's island never hears the footer's Motion and Sound switches. Passport no longer depends on `calm()`; the stamp's thud still asks `playTones()`, so with `npm run dev` the Sound switch does nothing for it. Built sites are not affected. The mend belongs in the shell: answer from the page's own mark, or keep the suite out of the dev server's bundling.
+
 ### After launch
 
 - More papers: a visa sticker, a driving licence, a seafarer's book, a laissez-passer.
@@ -59,8 +61,9 @@ Nine points from Stijn's first go through the designer, by his numbers.
 - **3. Your own photograph on the data page and card** (`PhotoControls.svelte`): cropped to four by five, moved by dragging or with three sliders, with SPECIMEN across it unless the switch beside it is turned off.
 - **Neither picture is stored:** not uploaded, not in the browser's storage, not in the link, not in the profile. The fiction rule on pictures was rewritten for this in `fiction.ts`, the guide, the start page, the glossary and the README, and `CLAUDE.md` records the change to the brief.
 - **5. The preview leans and catches the light** as the pointer moves over it (`Designer.svelte`): a few degrees of tilt, and a pool of light that keeps the document's own outline. Not for touch, and not at all for visitors who asked for calm.
+- **5.1. The lean, the light and the stamp's shake follow the footer's motion switch** (`motion.ts`), on the dev server as on the built site. The designer now asks the page itself (the shell marks `<html data-motion="still">`) instead of the suite's `calm()`, and the stylesheet lays the page flat by that same mark. `calm()` keeps the switch in the script's own memory, and `npm run dev` loads the suite's script twice (once for the shell, once bundled for the designer), so the designer's copy never heard the switch there. The built site loads one copy and always did follow it.
 - **6. Random** (`invent.ts`): one button for a whole invented state, with its name put together from syllables and checked against the real world, a holder, a card and three stamps.
-- **Checks:** 258 tests, 21 of them new: the own-picture rules (what counts as a picture, SPECIMEN across a photograph and its switch, nothing saved), arms with a credit line, the cover's outline, foil and wear, the chip mark, and 500 random states.
+- **Checks:** 263 tests, 26 of them new: the motion switch, the own-picture rules (what counts as a picture, SPECIMEN across a photograph and its switch, nothing saved), arms with a credit line, the cover's outline, foil and wear, the chip mark, and 500 random states.
 
 ### 15 November 2026: the site (Phase 2; built, not yet live)
 

@@ -7,7 +7,7 @@ import { createProfile, getSection, parseProfile, serialiseProfile, setSection, 
 import { PICTURE_SIZES, decodeState, encodeState, pictureFilename, resolveColors } from '@eurth/style';
 import tokens from '@eurth/style/tokens.json';
 import { readFileSync } from 'node:fs';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanDesign } from '../src/passport/clean';
 import { describeDocument, titleOf } from '../src/passport/describe';
 import { specimenOverprint } from '../src/passport/fiction';
@@ -19,6 +19,7 @@ import { stampExtent } from '../src/passport/stamps';
 import { templates } from '../src/passport/templates';
 import { problems, randomDesign } from './helpers/designs';
 import { mrzFindings, textsOf } from './helpers/mrz';
+import { still } from '../src/ui/motion';
 
 const fixture = (name: string): EurthProfile => JSON.parse(readFileSync(new URL(`./fixtures/${name}.eurth.json`, import.meta.url), 'utf8')) as EurthProfile;
 const calderwyn = fixture('calderwyn');
@@ -182,5 +183,43 @@ describe('a picture is named for what the browser really made', () => {
     const file = pictureFilename('teland-cover-square', { type: 'image/png' }, 'image/webp');
     expect(file.filename).toBe('teland-cover-square.png');
     expect(file.note).toBe('This browser can’t make WebP pictures, so this one is a PNG.');
+  });
+});
+
+describe('holding still: the footer’s motion switch and the device’s own wish', () => {
+  afterEach(() => vi.unstubAllGlobals());
+  const page = (motion: string | undefined, reduced: boolean): void => {
+    vi.stubGlobal('document', { documentElement: { dataset: motion ? { motion } : {} } });
+    vi.stubGlobal('matchMedia', (query: string) => ({ matches: reduced && query === '(prefers-reduced-motion: reduce)' }));
+  };
+
+  it('moves only when neither asks for stillness', () => {
+    page(undefined, false);
+    expect(still()).toBe(false);
+  });
+
+  it('holds still when motion is switched off in the footer, which the shell marks on the page', () => {
+    page('still', false);
+    expect(still()).toBe(true);
+  });
+
+  it('holds still when the device asks for reduced motion', () => {
+    page(undefined, true);
+    expect(still()).toBe(true);
+  });
+
+  it('holds still where there is no page at all', () => {
+    expect(still()).toBe(true);
+  });
+
+  it('is what the designer asks before anything leans, lights up or shakes', () => {
+    const designer = readFileSync(new URL('../src/ui/Designer.svelte', import.meta.url), 'utf8');
+    // Not the suite's calm(): a dev server loads that script twice, and the designer's copy never hears the switch.
+    expect(designer).not.toMatch(/\bcalm\(/);
+    expect(designer.match(/if \(still\(\)\)/g)).toHaveLength(2);
+    // And the stylesheet lays the page flat by itself, whatever the script last set.
+    expect(designer).toContain(":global(html[data-motion='still']) .leaf");
+    expect(designer).toContain(":global(html[data-motion='still']) .shine");
+    expect(designer).toContain('@media (prefers-reduced-motion: reduce)');
   });
 });
