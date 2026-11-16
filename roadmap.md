@@ -40,6 +40,8 @@ Decided on the way (say if you'd rather otherwise):
 
 8. **Icons for Load profile and Save profile:** those two buttons come from @eurth/profile (`ProfileButtons.svelte`) and have no icon, so they are the only buttons here with nothing to answer a click. Ask for icons there, for every tool at once.
 
+9. **The eagle for the Arstotzka easter egg waits on its maker.** Stijn wrote to Lucas Pope (3909 LLC) on 16 November 2026, through the contact address on the game's press kit page, asking to show the Arstotzka emblem unaltered on the cover when the easter egg is triggered. If he says yes: add the emblem as a file of his, marked as his and kept outside this repository's Apache licence (a notice beside the file and a line in the README), have the easter egg use it in place of our star, and credit him and the game in the footer with the wording he prefers. If he says no, or doesn't answer, the star stays. What was promised in the letter: only inside the easter egg, a credit in the footer, the file outside the open-source licence, and removal the same day if he asks.
+
 ### After launch
 
 - More papers: a visa sticker, a driving licence, a seafarer's book, a laissez-passer.
