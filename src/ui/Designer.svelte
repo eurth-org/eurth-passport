@@ -462,8 +462,9 @@
     transition: opacity 0.3s;
   }
 
+  /* Half strength: at full strength the light washed out the pale pages and cards. */
   .lit .shine {
-    opacity: 1;
+    opacity: 0.5;
   }
 
   /* With motion switched off in the footer, or reduced on the device, the page lies flat and no light moves over it, whatever the script last set. */
