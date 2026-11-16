@@ -59,15 +59,18 @@
   let ready = $state(false);
   // The visitor's own pictures, for this visit only.
   let ownEmblem = $state<string | null>(null);
+  let ownSource = $state<string | null>(null);
   let ownOn = $state(false);
   let ownFoil = $state(false);
+  let ownWide = $state(false);
+  let ownClear = $state(false);
   let photo = $state<string | null>(null);
   let photoMark = $state(true);
 
   const shown = $derived(cleanDesign(design));
   const arms = $derived(facts?.arms ?? null);
   // What is drawn beside the design: the profile's arms, and whatever the visitor brought.
-  const visit = $derived<RenderOptions>({ arms, emblem: ownOn ? ownEmblem : null, emblemFoil: ownFoil, photo, photoMark });
+  const visit = $derived<RenderOptions>({ arms, emblem: ownOn ? ownEmblem : null, emblemFoil: ownFoil, emblemWide: ownWide, photo, photoMark });
   const calendar = $derived(calendarOf(shown.calendar));
   const ref = $derived<DocumentRef>(tab === 'stamps' ? { kind: 'visaPage' } : { kind: tab });
   const svg = $derived(renderDocument(shown, ref, { ...visit, idPrefix: 'stage' }));
@@ -163,6 +166,7 @@
     design = defaultDesign();
     chosen = 0;
     ownEmblem = null;
+    ownSource = null;
     ownOn = false;
     photo = null;
     photoMark = true;
@@ -306,7 +310,7 @@
       </label>
 
       {#if tab === 'cover'}
-        <CoverControls bind:cover={design.cover} stateName={shown.state.name} hasArms={arms !== null} bind:own={ownEmblem} bind:ownOn bind:ownFoil {armsUrl} />
+        <CoverControls bind:cover={design.cover} stateName={shown.state.name} hasArms={arms !== null} bind:own={ownEmblem} bind:ownSource bind:ownOn bind:ownFoil bind:ownWide bind:ownClear {armsUrl} />
       {:else if tab === 'stamps'}
         <div class="eu-row">
           {#each stampKinds as kind (kind)}

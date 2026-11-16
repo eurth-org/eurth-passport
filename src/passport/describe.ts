@@ -41,7 +41,8 @@ function coverColourName(hex: string): string {
 }
 
 function foilName(design: Design): string {
-  const used = coverInk(design.cover.colour, design.cover.foil);
+  // The easter egg: an Arstotzkan cover is stamped in red (see fun.ts).
+  const used = arstotzkaInk(design.state.name, design.cover.colour) ?? coverInk(design.cover.colour, design.cover.foil);
   const chosen = foils.find((f) => f.hex === used);
   return chosen ? lower(chosen.name) : colourName(used);
 }
@@ -63,9 +64,7 @@ function portraitPhrase(design: Design, options: DescribeOptions): string {
 export function describeCover(design: Design, options: DescribeOptions = {}): string {
   const { cover, state } = design;
   const device = devicePhrase(design, options);
-  // The easter egg: an Arstotzkan cover has its emblem stamped in red (see fun.ts).
-  const red = arstotzkaInk(state.name, cover.colour);
-  const parts = [`the state’s name at the top`, `${device}${red && !options.ownEmblem && !options.armsUsed ? ` in ${colourName(red)}` : ''} in the middle`, `${titlesOf(cover.titles)} below`];
+  const parts = [`the state’s name at the top`, `${device} in the middle`, `${titlesOf(cover.titles)} below`];
   if (cover.chip) parts.push('a chip symbol at the foot');
   return `Passport cover of ${withArticle(state.name)}. A ${coverColourName(cover.colour)} cover with ${foilName(design)} lettering: ${listOf(parts)}.`;
 }

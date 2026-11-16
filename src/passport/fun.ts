@@ -1,8 +1,9 @@
 /**
  * The easter eggs. A visa for the Moon gets a second stamp from a thoughtful official. And a
  * visitor who names their state Arstotzka, after the border post in the game Papers, Please, is
- * greeted the way its inspector would be: their cover turns black with its emblem stamped in
- * red, and the whole page goes dark, colourless and square, set in a pixel typeface.
+ * greeted the way its inspector would be: their cover turns black and is stamped in red, name,
+ * emblem, title and chip alike, and the whole page goes dark, colourless and square, set in a
+ * pixel typeface.
  * The game's own emblem and look are its maker's: nothing of them is drawn or copied here.
  */
 import { contrast } from './colours';
@@ -28,7 +29,7 @@ export const ARSTOTZKA_TEXT = 'Glory to Arstotzka. Papers, please.';
 
 /** What an Arstotzkan cover is dressed in the moment the name is typed: black, with our own star. */
 export const ARSTOTZKA_COVER = { colour: '#1a1a1a', emblem: 'star' } as const;
-/** And what its emblem is stamped in, wherever that can be read. */
+/** And what it is stamped in, wherever that can be read. */
 export const ARSTOTZKA_RED = '#d2382f';
 
 // Arstotzka, Arstotzkan, Arstotska, Arstozka, Arztotzka and the like, as a word of its own.
@@ -45,9 +46,9 @@ export function isArstotzka(name: string): boolean {
 }
 
 /**
- * The colour an Arstotzkan cover's emblem is stamped in: red, where red can be read on the cover
- * (3:1 or better). The lettering keeps the foil that was chosen. Null for every other state,
- * and for an Arstotzkan cover too pale or too red for it.
+ * The colour an Arstotzkan cover is stamped in, lettering, emblem and chip alike: red, whatever
+ * foil was chosen, where red can be read on the cover (3:1 or better). Null for every other
+ * state, and for an Arstotzkan cover too pale or too red for it.
  */
 export function arstotzkaInk(name: string, cover: string): string | null {
   return isArstotzka(name) && contrast(ARSTOTZKA_RED, cover) >= 3 ? ARSTOTZKA_RED : null;

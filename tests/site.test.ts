@@ -20,6 +20,7 @@ import { templates } from '../src/passport/templates';
 import { problems, randomDesign } from './helpers/designs';
 import { mrzFindings, textsOf } from './helpers/mrz';
 import { still } from '../src/ui/motion';
+import { GROUND_TOLERANCE, clearBackground } from '../src/ui/ground';
 
 const fixture = (name: string): EurthProfile => JSON.parse(readFileSync(new URL(`./fixtures/${name}.eurth.json`, import.meta.url), 'utf8')) as EurthProfile;
 const calderwyn = fixture('calderwyn');
@@ -317,5 +318,58 @@ describe('Arstotzka in the designer: dark, colourless, square, and set in a pixe
     expect(bleak).toContain('filter: grayscale(0.9);');
     expect(bleak).toContain('border-radius: 0 !important;');
     expect(bleak).not.toMatch(/#[0-9a-f]{3,6}\b|rgb\(/i);
+  });
+});
+
+describe('taking the plain background out of a visitor’s own emblem', () => {
+  // A picture from rows of letters: # is the dark background, r a red shape, g a grey band, . clear already.
+  const colours: Record<string, [number, number, number, number]> = { '#': [12, 14, 12, 255], '+': [20, 22, 20, 255], r: [200, 40, 40, 255], g: [60, 80, 60, 255], w: [255, 255, 255, 255], '.': [0, 0, 0, 0] };
+  const picture = (rows: string[]): { data: Uint8ClampedArray; width: number; height: number } => {
+    const width = rows[0]!.length;
+    const data = new Uint8ClampedArray(width * rows.length * 4);
+    rows.forEach((row, y) => Array.from(row).forEach((ch, x) => data.set(colours[ch]!, (y * width + x) * 4)));
+    return { data, width, height: rows.length };
+  };
+  const clear = (p: { data: Uint8ClampedArray; width: number; height: number }): string[] =>
+    Array.from({ length: p.height }, (_, y) => Array.from({ length: p.width }, (_, x) => (p.data[(y * p.width + x) * 4 + 3] === 0 ? '.' : 'X')).join(''));
+
+  it('clears what is joined to the edge in the colour of the corners, and nothing else', () => {
+    const p = picture(['#######', '#rrrrr#', '#r###r#', '#r###r#', '#rrrrr#', '#######']);
+    expect(clearBackground(p.data, p.width, p.height)).toBe(22);
+    // The same dark colour inside the shape is part of the emblem, and stays.
+    expect(clear(p)).toEqual(['.......', '.XXXXX.', '.XXXXX.', '.XXXXX.', '.XXXXX.', '.......']);
+    // What stays keeps its colour.
+    expect([...p.data.subarray((2 * 7 + 3) * 4, (2 * 7 + 3) * 4 + 4)]).toEqual([12, 14, 12, 255]);
+    expect([...p.data.subarray((1 * 7 + 1) * 4, (1 * 7 + 1) * 4 + 4)]).toEqual([200, 40, 40, 255]);
+  });
+
+  it('follows the background round a shape that reaches the edge, and takes near shades of it too', () => {
+    const p = picture(['##+##', 'ggggg', '#+r+#', '#####']);
+    clearBackground(p.data, p.width, p.height);
+    expect(clear(p)).toEqual(['.....', 'XXXXX', '..X..', '.....']);
+    expect(GROUND_TOLERANCE).toBeGreaterThan(24);
+    expect(GROUND_TOLERANCE).toBeLessThan(120);
+  });
+
+  it('leaves a picture alone when it has no plain background to take out', () => {
+    const already = picture(['..r..', '.rrr.', '..r..']);
+    const before = [...already.data];
+    expect(clearBackground(already.data, already.width, already.height)).toBe(0);
+    expect([...already.data]).toEqual(before);
+    // A white ground goes as a dark one does.
+    const white = picture(['www', 'wrw', 'www']);
+    clearBackground(white.data, white.width, white.height);
+    expect(clear(white)).toEqual(['...', '.X.', '...']);
+    // Nonsense sizes do nothing.
+    expect(clearBackground(new Uint8ClampedArray(4), 0, 0)).toBe(0);
+    expect(clearBackground(new Uint8ClampedArray(4), 5, 5)).toBe(0);
+  });
+
+  it('offers it, and laying the emblem across the cover, only for a picture of the visitor’s own', () => {
+    const controls = readFileSync(new URL('../src/ui/CoverControls.svelte', import.meta.url), 'utf8');
+    const own = /\{#if own && ownOn\}([\s\S]*?)\{\/if\}/.exec(controls)![1]!;
+    for (const label of ['Across the whole cover', 'Take out its background', 'Stamp it in foil']) expect(own).toContain(label);
+    // The picture as picked is kept, so the background can be put back.
+    expect(controls).toContain('own = on ? await withoutBackground(ownSource) : ownSource;');
   });
 });

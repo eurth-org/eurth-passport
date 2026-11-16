@@ -5,6 +5,7 @@
  */
 import { MAX_PICTURE_LENGTH, MAX_SVG_LENGTH, ownPicture, vectorOnly } from '../passport/fiction';
 import { svgDataUrl } from '../passport/render';
+import { clearBackground } from './ground';
 
 /** The largest file the tool will open. */
 export const MAX_FILE_BYTES = 12 * 1024 * 1024;
@@ -50,10 +51,12 @@ export function loadImage(src: string): Promise<HTMLImageElement> {
 /** SVG text with a width and a height on it, taken from its viewBox: Firefox won't draw one on a canvas without. */
 export function sized(svg: string): string {
   const root = /<svg\b[^>]*>/i.exec(svg);
-  if (!root || /\swidth\s*=/.test(root[0])) return svg;
+  // A width in plain units is a size already. One in per cent ("100%") is not, and is replaced.
+  if (!root || /\swidth\s*=\s*["']\s*[\d.]+(?:px)?\s*["']/.test(root[0])) return svg;
   const box = /\sviewBox\s*=\s*["']\s*[-\d.]+[\s,]+[-\d.]+[\s,]+([\d.]+)[\s,]+([\d.]+)\s*["']/i.exec(root[0]);
   const [w, h] = box ? [Number(box[1]), Number(box[2])] : [600, 600];
-  return svg.replace(root[0], root[0].replace(/<svg\b/i, `<svg width="${w}" height="${h}"`));
+  const bare = root[0].replace(/\s(?:width|height)\s*=\s*(?:"[^"]*"|'[^']*')/gi, '');
+  return svg.replace(root[0], bare.replace(/<svg\b/i, `<svg width="${w}" height="${h}"`));
 }
 
 /** A picture drawn to fit inside a square of `side`, as a PNG that keeps its clear parts clear. */
@@ -102,6 +105,31 @@ export async function emblemFromFile(file: File): Promise<string> {
     return asEmblem(await loadImage(svgDataUrl(sized(svg))));
   }
   return asEmblem(await loadImage(await readDataUrl(file)));
+}
+
+/**
+ * An emblem with its plain background taken out (see ground.ts): drawn onto a canvas, cleared
+ * from the edges inwards, and kept as a PNG. Takes what emblemFromFile gives: SVG text that is
+ * pure drawing, or a picture.
+ */
+export async function withoutBackground(emblem: string): Promise<string> {
+  const image = await loadImage(vectorOnly(emblem as unknown) ? svgDataUrl(sized(emblem)) : emblem);
+  for (const side of [768, 512, 320, 200]) {
+    const scale = Math.min(1, side / Math.max(image.naturalWidth, image.naturalHeight));
+    // A drawing has no size of its own to lose, so it is drawn at the full side.
+    const grow = vectorOnly(emblem as unknown) ? side / Math.max(image.naturalWidth, image.naturalHeight) : scale;
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.max(1, Math.round(image.naturalWidth * grow));
+    canvas.height = Math.max(1, Math.round(image.naturalHeight * grow));
+    const context = canvas.getContext('2d')!;
+    context.drawImage(image, 0, 0, canvas.width, canvas.height);
+    const pixels = context.getImageData(0, 0, canvas.width, canvas.height);
+    clearBackground(pixels.data, canvas.width, canvas.height);
+    context.putImageData(pixels, 0, 0);
+    const picture = canvas.toDataURL('image/png');
+    if (ownPicture(picture)) return picture;
+  }
+  throw new Error(NOT_A_PICTURE_NOTE);
 }
 
 /** A photograph from a visitor's file, ready to be cut to size. */

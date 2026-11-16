@@ -1,6 +1,6 @@
 <script lang="ts">
   /* The cover: its colour, the foil it is stamped in, the emblem (ours, the nation's arms or the visitor's own), the title in up to two languages, the chip symbol. */
-  import { faCheck, faMicrochip, faShieldHalved, faStamp, faTrash, faUpload } from '@fortawesome/free-solid-svg-icons';
+  import { faArrowsLeftRight, faCheck, faEraser, faMicrochip, faShieldHalved, faStamp, faTrash, faUpload } from '@fortawesome/free-solid-svg-icons';
   import { toast } from '@eurth/style';
   import Icon from '@eurth/style/components/Icon.svelte';
   import { coverColours, coverInk, foils } from '../passport/colours';
@@ -10,7 +10,7 @@
   import { limits, type Cover } from '../passport/model';
   import { svgDataUrl } from '../passport/render';
   import Choice from './Choice.svelte';
-  import { EMBLEM_FILES, emblemFromFile, pickFile } from './pictures';
+  import { EMBLEM_FILES, emblemFromFile, pickFile, withoutBackground } from './pictures';
   import Toggle from './Toggle.svelte';
 
   let {
@@ -18,20 +18,29 @@
     stateName,
     hasArms,
     own = $bindable(),
+    ownSource = $bindable(),
     ownOn = $bindable(),
     ownFoil = $bindable(),
+    ownWide = $bindable(),
+    ownClear = $bindable(),
     armsUrl = null,
   }: {
     cover: Cover;
     /** The issuing state, as drawn: one state's covers are stamped in a colour of their own. */
     stateName: string;
     hasArms: boolean;
-    /** The visitor's own emblem, for this visit: kept in memory, never in the design. */
+    /** The visitor's own emblem as it is drawn, for this visit: kept in memory, never in the design. */
     own: string | null;
+    /** The same emblem as it was picked, before its background was taken out. */
+    ownSource: string | null;
     /** Whether it is the one on the cover just now. */
     ownOn: boolean;
     /** Whether it is stamped in foil by its outline, in place of its own colours. */
     ownFoil: boolean;
+    /** Whether it lies across the whole width of the cover. */
+    ownWide: boolean;
+    /** Whether its plain background is taken out. */
+    ownClear: boolean;
     /** Where Arms lives, once it is live; null before then, and it isn't named. */
     armsUrl?: string | null;
   } = $props();
@@ -42,7 +51,9 @@
     const file = await pickFile(EMBLEM_FILES);
     if (!file) return;
     try {
-      own = await emblemFromFile(file);
+      const picked = await emblemFromFile(file);
+      ownSource = picked;
+      own = ownClear ? await withoutBackground(picked) : picked;
       ownOn = true;
       toast('Your emblem is on the cover.');
     } catch (error) {
@@ -50,21 +61,35 @@
     }
   }
 
+  /** With or without the plain background it came on. The picture as picked is kept, so this can be undone. */
+  async function clearGround(on: boolean) {
+    ownClear = on;
+    if (!ownSource) return;
+    try {
+      own = on ? await withoutBackground(ownSource) : ownSource;
+    } catch (error) {
+      ownClear = false;
+      own = ownSource;
+      toast(error instanceof Error ? error.message : 'That picture’s background couldn’t be taken out.');
+    }
+  }
+
   function removeOwn() {
     own = null;
+    ownSource = null;
     ownOn = false;
     toast('Your emblem is off the cover.');
   }
 
   const preset = $derived(coverColours.find((c) => c.hex === cover.colour.toLowerCase())?.id ?? 'other');
   const egg = $derived(arstotzkaInk(stateName, cover.colour));
-  const foil = $derived(coverInk(cover.colour, cover.foil));
+  const foil = $derived(egg ?? coverInk(cover.colour, cover.foil));
   // Each emblem as it would look on this cover: the cover's colour behind, the foil in front.
   const swatches = $derived(
     emblems.map((e) => ({
       id: e.id,
       name: e.name,
-      src: svgDataUrl(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="-10 -10 120 120"><rect x="-10" y="-10" width="120" height="120" rx="12" fill="${cover.colour}"/>${e.draw(egg ?? foil, cover.colour)}</svg>`),
+      src: svgDataUrl(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="-10 -10 120 120"><rect x="-10" y="-10" width="120" height="120" rx="12" fill="${cover.colour}"/>${e.draw(foil, cover.colour)}</svg>`),
     })),
   );
 </script>
@@ -89,13 +114,14 @@
 </fieldset>
 
 <Choice legend="Lettering" name="foil" options={foils} bind:value={cover.foil} />
-{#if foil !== foils.find((f) => f.id === cover.foil)?.hex}
+{#if egg}
+  <p class="eu-help">Arstotzka stamps its covers in red, whatever is chosen here.</p>
+{:else if foil !== foils.find((f) => f.id === cover.foil)?.hex}
   <p class="eu-help">That foil can’t be read on this colour, so the cover is stamped in the nearest thing that can.</p>
 {/if}
 
 <fieldset class="group">
   <legend class="eu-label">Emblem</legend>
-  {#if egg}<p class="eu-help">Arstotzka stamps its emblem in red.</p>{/if}
   <div class="grid">
     {#each swatches as emblem (emblem.id)}
       <button
@@ -126,7 +152,11 @@
     {/if}
   </div>
   {#if own && ownOn}
-    <Toggle bind:checked={ownFoil} icon={faStamp}>Stamp it in foil</Toggle>
+    <div class="eu-row">
+      <Toggle bind:checked={ownWide} icon={faArrowsLeftRight}>Across the whole cover</Toggle>
+      <Toggle checked={ownClear} icon={faEraser} onchange={clearGround}>Take out its background</Toggle>
+      <Toggle bind:checked={ownFoil} icon={faStamp}>Stamp it in foil</Toggle>
+    </div>
   {/if}
   <p class="eu-help">
     A picture of your own: an SVG, PNG, JPEG or WebP.
