@@ -6,7 +6,7 @@ Three parts: what comes next, what each release added (newest first), and what's
 
 ## Where to pick up
 
-**15 November 2026.** The site is built and pushed, on top of @eurth/style 1.0.1 and @eurth/profile 1.0.0: four pages, the designer, the link, the profile file, downloads, sharing, the stamp's thump and the Moon's jacket. `npm run check`, `npm run build`, `npm test` (239 tests, the suite's own included) and `npm run axe` all pass. Checked in Chrome, Safari and Firefox. Nothing is deployed, and nothing will be until the launch workflow opens the door on 19 December 2026 at 00:00 in Brussels.
+**15 November 2026.** The site is built and pushed, on top of @eurth/style (1.3.0 since 16 November) and @eurth/profile 1.0.0: four pages, the designer, the link, the profile file, downloads, sharing, the stamp's thump and the Moon's jacket. `npm run check`, `npm run build`, `npm test` (237 tests, the suite's own included) and `npm run axe` all pass. Checked in Chrome, Safari and Firefox. Nothing is deployed, and nothing will be until the launch workflow opens the door on 19 December 2026 at 00:00 in Brussels.
 
 What is left is under "Next", in order. Start with the first item.
 
@@ -25,7 +25,7 @@ Decided on the way (say if you'd rather otherwise):
 ## Next
 
 1. **Look at it with your own eyes.** `npm run dev`, then go through the five tabs, load `tests/fixtures/calderwyn.eurth.json` with Load profile (arms on the cover, dates in the Lantern Reckoning, a Calderwynian holder), save it again, and try the downloads. This has been checked by tests and in three browsers, not by a person.
-2. **Safari and Firefox** were checked on 15 November 2026 (Safari 27, Firefox 159): every document draws into a PNG with the profile's arms on it, long names squeeze sensibly, and in Safari the tabs, the thump and the link work. Safari can't make WebP and hands back a PNG without saying so; the file is now named `.png` and a note says why. Flagwright and the shared `svgToPicture()` still have that fault.
+2. **Safari and Firefox** were checked on 15 November 2026 (Safari 27, Firefox 159): every document draws into a PNG with the profile's arms on it, long names squeeze sensibly, and in Safari the tabs, the thump and the link work. Safari can't make WebP and hands back a PNG without saying so; the file is now named `.png` and a note says why, through `pictureFilename()` in @eurth/style 1.3.0, which was added for this on 16 November 2026. Flagwright still has the fault until it uses the helper.
 3. **The profile's `passport` section:** `title` and `svg` (the cover) are proposed in [eurth-org/eurth-profile#2](https://github.com/eurth-org/eurth-profile/pull/2), which also asks what to do about designs too big for a 4,000-character link (today those travel under a key the schema doesn't name, `design`, and pass the profile's own check). Follow what is decided there.
 4. **Lighthouse** ran in CI on 15 November and its assertions passed on all four pages (accessibility, best practices and SEO at 100, performance at 95 or better). The start page carries the whole designer, so watch its weight as it grows.
 5. **CI is green** on GitHub (check, build, test, axe, Lighthouse), and its deploy step holds back until the door, as it should.
@@ -52,7 +52,7 @@ Nothing is live yet: the door opens on 19 December 2026. What is built so far, n
 - **Downloads:** SVG, PNG and WebP of each document, as it is or set on a ground in the suite's six sharing sizes; the chosen stamp on its own on a clear ground. Copy link, Copy picture, Copy description and the Share dialog.
 - **Delight:** a stamp thumps onto the page and the page takes the knock (with a low thud when sound is on, and nothing at all for reduced motion); a visa for the Moon gets a second stamp and the toast "Bring a jacket."; "Nice." on the position sliders.
 - **A picture is named for what it is:** Safari answers a request for WebP with a PNG, so the download is called `.png` and a note says so; if a browser can't draw the picture at all, a plain message points to the SVG.
-- **Checks:** 239 tests. Besides Phase 1's: the suite's own (contrast, security headers, privacy, no spoilers, pages, launch date), links read by the shared helpers, what Passport writes checked by @eurth/profile's own validator, stamps on screen where the download draws them, and SPECIMEN kept in every sharing size. axe finds nothing on five pages in both themes.
+- **Checks:** 237 tests. Besides Phase 1's: the suite's own (contrast, security headers, privacy, no spoilers, pages, launch date), links read by the shared helpers, what Passport writes checked by @eurth/profile's own validator, stamps on screen where the download draws them, and SPECIMEN kept in every sharing size. axe finds nothing on five pages in both themes.
 
 ### 15 November 2026: the engine and the words (Phase 1; built, not yet live)
 

@@ -10,7 +10,7 @@
   import { faCheck, faDownload, faPlus, faRotateLeft, faStamp, faTrash } from '@fortawesome/free-solid-svg-icons';
   import { createProfile, getSection, setSection, type EurthProfile } from '@eurth/profile';
   import ProfileButtons from '@eurth/profile/ProfileButtons.svelte';
-  import { PICTURE_SIZES, calm, download, fileSlug, playTones, resolveColors, stateFromLocation, stateLink, stateToLocation, svgToPicture, toast } from '@eurth/style';
+  import { PICTURE_SIZES, calm, download, fileSlug, pictureFilename, playTones, resolveColors, stateFromLocation, stateLink, stateToLocation, svgToPicture, toast } from '@eurth/style';
   import Icon from '@eurth/style/components/Icon.svelte';
   import ShareButtons from '@eurth/style/components/ShareButtons.svelte';
   import tokens from '@eurth/style/tokens.json';
@@ -19,7 +19,6 @@
   import { calendarOf } from '../passport/dates';
   import { describeDocument, describeStamp, titleOf } from '../passport/describe';
   import { REAL_COUNTRY_NOTE, isRealCountry } from '../passport/fiction';
-  import { PICTURE_ERROR, pictureFile, type PictureKind } from '../passport/files';
   import { MOON_STAMP_TEXT, hasMoonVisa } from '../passport/fun';
   import { compactDesign, expandDesign } from '../passport/link';
   import { MAX_SEED, MAX_STAMPS, defaultDesign, defaultStamp, limits, stampKindNames, stampKinds, type Design, type DocumentRef, type StampKind } from '../passport/model';
@@ -161,14 +160,15 @@
   }
 
   /** Draws a picture and downloads it, named for what the browser really made (Safari answers WebP with a PNG). */
-  async function savePicture(svg: string, width: number, height: number, name: string, kind: PictureKind) {
+  async function savePicture(svg: string, width: number, height: number, name: string, kind: 'png' | 'webp') {
+    const type = kind === 'png' ? 'image/png' : 'image/webp';
     try {
-      const blob = await svgToPicture(svg, { width, height, type: kind === 'png' ? 'image/png' : 'image/webp', quality: 0.92 });
-      const file = pictureFile(name, kind, blob.type);
+      const blob = await svgToPicture(svg, { width, height, type, quality: 0.92 });
+      const file = pictureFilename(name, blob, type);
       download(blob, file.filename);
       if (file.note) toast(file.note);
     } catch {
-      toast(PICTURE_ERROR);
+      toast('This browser couldn’t make the picture. The SVG download always works.');
     }
   }
 
