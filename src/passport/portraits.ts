@@ -96,18 +96,23 @@ function backHair(kind: Hair, colour: string): string {
   }
 }
 
+/**
+ * The hair in front of the head. The head is an ellipse whose top is at 26; each of these runs
+ * over that top (to about 23) and down past the widest part of the head on both sides, so no
+ * skin shows above the hair. Only the thinning style leaves the crown bare, on purpose.
+ */
 function frontHair(kind: Hair, colour: string): string {
   switch (kind) {
     case 'short':
     case 'bun':
     case 'ponytail':
     case 'braids':
-      return `<path d="M27 52C23 22 77 22 73 52c-3-11-10-17-23-17s-20 6-23 17z" fill="${colour}"/>`;
+      return `<path d="M26 53C21 13 79 13 74 53c-3-11-10-18-24-18s-21 7-24 18z" fill="${colour}"/>`;
     case 'bob':
     case 'long':
-      return `<path d="M27 54C22 20 78 20 73 54c-2-12-8-19-14-21c-10 5-24 6-30 16z" fill="${colour}"/>`;
+      return `<path d="M26 55C20 12 80 12 74 55c-2-12-8-20-15-22c-10 5-24 6-30 17z" fill="${colour}"/>`;
     case 'curls':
-      return `<path d="M28 46C28 26 72 26 72 46c-6-9-14-12-22-12s-16 3-22 12z" fill="${colour}"/>`;
+      return `<path d="M27 47C27 16 73 16 73 47c-6-9-14-12-23-12s-17 3-23 12z" fill="${colour}"/>`;
     case 'sides':
       return `<g fill="${colour}"><path d="M27 54c-3-10 0-20 6-25c-2 8-2 16-1 24z"/><path d="M73 54c3-10 0-20-6-25c2 8 2 16 1 24z"/></g>`;
     default:

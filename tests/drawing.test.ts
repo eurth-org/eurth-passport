@@ -10,8 +10,10 @@ import { chipSymbol, contactPad, emblem, emblems } from '../src/passport/emblems
 import { MOON_STAMP_TEXT, hasMoonVisa, isMoonVisa } from '../src/passport/fun';
 import { avatarIds, clothesIds, defaultDesign, defaultStamp, emblemIds, foilIds, hairIds, patternIds, skinIds, stampBorders, stampMarks, stampShapes, type Design, type DocumentRef, type Stamp } from '../src/passport/model';
 import { drawPattern, pattern, patterns } from '../src/passport/patterns';
-import { avatar, avatars, describePortrait, drawPortrait, skins } from '../src/passport/portraits';
+import { avatar, avatars, describePortrait, drawPortrait, hairColours, skins } from '../src/passport/portraits';
 import { coverOutline, documentsOf, foilBands, renderCardBack, renderCardFront, renderCover, renderDataPage, renderDocument, renderStamp, renderVisaPage, sizes, svgDataUrl } from '../src/passport/render';
+import { generateHolder } from '../src/passport/names';
+import { SIGNED_LETTERS, drawSignature, signatureText } from '../src/passport/signature';
 import { borderNames, drawStamp, markNames, noteStamp, shapeNames, stampBox, stampExtent, stampFace } from '../src/passport/stamps';
 import { MONO, esc, estimateWidth, starPoints, text } from '../src/passport/svg';
 import { template } from '../src/passport/templates';
@@ -96,6 +98,34 @@ describe('emblems', () => {
     expect(Math.min(...edges)).toBeLessThan(50);
     expect(Math.max(...edges)).toBeGreaterThan(50);
     expect(problems(wrap(contactPad(10, 10, 84)))).toEqual([]);
+  });
+});
+
+describe('portraits: hair', () => {
+  it('covers the top of the head: the hair’s outer edge never runs inside the skull', () => {
+    // The head is an ellipse centred on (50, 53), 22 wide and 27 tall each way; its top is at 26.
+    const inHead = (x: number, y: number): boolean => ((x - 50) / 22) ** 2 + ((y - 53) / 27) ** 2 < 0.98;
+    const hair = hairColours.find((h) => h.id === 'black')!.hex;
+    let checked = 0;
+    for (const a of avatars) {
+      if (a.hair === 'none' || a.hair === 'sides') continue;
+      const svg = drawPortrait({ avatar: a.id, skin: 'fair', hair: 'black', clothes: 'navy' });
+      // The front hair: the path that starts at one temple and arches to the other in one curve.
+      const front = [...svg.matchAll(new RegExp(`<path d="M(\\d+) (\\d+)C(\\d+) (\\d+) (\\d+) (\\d+) (\\d+) (\\d+)c[^"]*" fill="${hair}"/>`, 'g'))].map((m) => m.slice(1).map(Number)).filter((p) => p[0]! < 30 && p[6]! > 70 && p[1]! < 60);
+      expect(front, a.id).toHaveLength(1);
+      const [x0, y0, x1, y1, x2, y2, x3, y3] = front[0] as [number, number, number, number, number, number, number, number];
+      let top = Infinity;
+      for (let t = 0.05; t < 0.96; t += 0.05) {
+        const u = 1 - t;
+        const x = u ** 3 * x0 + 3 * u * u * t * x1 + 3 * u * t * t * x2 + t ** 3 * x3;
+        const y = u ** 3 * y0 + 3 * u * u * t * y1 + 3 * u * t * t * y2 + t ** 3 * y3;
+        expect(inHead(x, y), `${a.id} at ${t.toFixed(2)}: (${x.toFixed(1)}, ${y.toFixed(1)})`).toBe(false);
+        top = Math.min(top, y);
+      }
+      expect(top, a.id).toBeLessThan(26);
+      checked++;
+    }
+    expect(checked).toBeGreaterThanOrEqual(8);
   });
 });
 
@@ -406,10 +436,69 @@ describe('documents', () => {
   });
 
   it('signs for the holder with a line that is nobody’s signature, the same for the same name', () => {
-    const path = (svg: string): string => /<path d="(M[^"]+)" fill="none" stroke="#1f2428"/.exec(svg)![1]!;
+    const path = (svg: string): string => /<path data-part="signature" d="(M[^"]+)" fill="none" stroke="#1f2428"/.exec(svg)![1]!;
     const a = path(renderDataPage(defaultDesign()));
     expect(path(renderDataPage(defaultDesign()))).toBe(a);
     expect(path(renderDataPage(tweak((x) => (x.holder.given = 'Maud'))))).not.toBe(a);
+    expect(path(renderDataPage(tweak((x) => (x.holder.surname = 'Quillon'))))).not.toBe(a);
+    for (const page of [renderDataPage(defaultDesign()), renderCardFront(defaultDesign())]) expect(page.match(/data-part="signature"/g)).toHaveLength(1);
+    expect(renderCardBack(defaultDesign())).not.toContain('data-part="signature"');
+  });
+
+  it('writes the signature from the holder’s own name: the first letter of the given name, then the surname', () => {
+    expect(signatureText('Liane', 'Ashdale')).toBe('L Ashdale');
+    expect(signatureText(' bram ', '  QUILLON ')).toBe('B Quillon');
+    // Accents are left off, as a quick hand leaves them; the letters under them stay.
+    expect(signatureText('Élan', 'Ærø Ünter')).toBe('E Ærø unter');
+    expect(signatureText('', 'Tarn')).toBe('Tarn');
+    expect(signatureText('Wren', '')).toBe('W');
+    expect(signatureText('', '')).toBe('');
+  });
+
+  it('writes more for a longer surname, letter by letter, and trails off when the name runs long', () => {
+    const strokes = (given: string, surname: string): number => (drawSignature(given, surname, 0, 0, 120, 36, '#000').match(/C/g) ?? []).length;
+    expect(strokes('Jo', 'Li')).toBeLessThan(strokes('Jo', 'Lind'));
+    expect(strokes('Jo', 'Lind')).toBeLessThan(strokes('Jo', 'Lindqvist'));
+    // The same letters in another order are another signature: it follows the name, not just its length.
+    expect(drawSignature('Jo', 'Tarn', 0, 0, 120, 36, '#000')).not.toBe(drawSignature('Jo', 'Rant', 0, 0, 120, 36, '#000'));
+    // Past the first few letters the hand runs on into a line, however long the name is.
+    const long = 'Bellweathercoldharbour';
+    expect(Array.from(long).length).toBeGreaterThan(SIGNED_LETTERS + 4);
+    expect(strokes('Jo', long)).toBe(strokes('Jo', `${long}andthensome`));
+    expect(strokes('Jo', long)).toBeLessThan(strokes('Jo', long.slice(0, SIGNED_LETTERS + 1)) + 12);
+  });
+
+  it('keeps every signature inside its box, whatever the name', () => {
+    const names: [string, string][] = [
+      ['', ''],
+      ['Jo', 'Li'],
+      ['Zarek', 'Bellweather-Coldharbour'],
+      ['Élan', 'O’Hara'],
+      ['東', '京'],
+      ['Ωmega', 'Ærø'],
+      ['Q', 'Fjgpqy'],
+      ['W', 'Mmmmmmmmm'],
+      ['A', 'I'],
+      ...Array.from({ length: 200 }, (_, seed): [string, string] => {
+        const holder = generateHolder(seed, { issued: { d: 1, m: 1, y: 2026 } });
+        return [holder.given, holder.surname];
+      }),
+    ];
+    for (const [given, surname] of names) {
+      for (const [x, y, w, h] of [[20, 220, 120, 36], [150, 210, 150, 34]] as const) {
+        const svg = drawSignature(given, surname, x, y, w, h, '#1f2428');
+        expect(svg, `${given} ${surname}`).not.toMatch(/NaN|undefined|Infinity/);
+        expect(problems(wrap(svg)), `${given} ${surname}`).toEqual([]);
+        const d = /d="([^"]+)"/.exec(svg)![1]!;
+        const numbers = [...d.matchAll(/-?\d+(?:\.\d+)?/g)].map((m) => Number(m[0]));
+        for (let i = 0; i < numbers.length; i += 2) {
+          expect(numbers[i], `${given} ${surname}: x`).toBeGreaterThanOrEqual(x - 3);
+          expect(numbers[i], `${given} ${surname}: x`).toBeLessThanOrEqual(x + w + 3);
+          expect(numbers[i + 1], `${given} ${surname}: y`).toBeGreaterThanOrEqual(y - 3);
+          expect(numbers[i + 1], `${given} ${surname}: y`).toBeLessThanOrEqual(y + h + 6);
+        }
+      }
+    }
   });
 
   it('draws a stamp on clear or on paper, and nothing for a stamp that is not there', () => {

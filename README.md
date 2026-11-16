@@ -47,6 +47,7 @@ Four rules, none of them a setting, each held by its own tests in `tests/fiction
 | Descriptions in words | `src/passport/describe.ts` |
 | Dates in the world's calendar, holder names | `src/passport/dates.ts`, `names.ts`, `random.ts` |
 | Random: a whole invented state | `src/passport/invent.ts` |
+| The holder's signature, written from their name | `src/passport/signature.ts` |
 | The link | `src/passport/link.ts` |
 | The profile's `passport` section | `src/passport/profile.ts` |
 | Templates, and the Moon | `src/passport/templates.ts`, `fun.ts` |
@@ -54,6 +55,7 @@ Four rules, none of them a setting, each held by its own tests in `tests/fiction
 | The designer: state, link, profile, downloads | `src/ui/Designer.svelte` |
 | Controls for the cover, the papers and a stamp | `src/ui/CoverControls.svelte`, `PapersControls.svelte`, `StampControls.svelte` |
 | A visitor's own emblem and photograph: reading the file, cropping | `src/ui/pictures.ts`, `PhotoControls.svelte` |
+| An on/off pill with the suite's tick; holding still when motion is off | `src/ui/Toggle.svelte`, `motion.ts` |
 | The visa page on screen: picking and dragging stamps | `src/ui/VisaPage.svelte` |
 | Pages: designer, templates, guide, glossary, 404 | `src/pages/` |
 | Name, address, title, pages | `eurth.config.mjs` |

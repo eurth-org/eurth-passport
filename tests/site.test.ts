@@ -223,3 +223,50 @@ describe('holding still: the footer’s motion switch and the device’s own wis
     expect(designer).toContain('@media (prefers-reduced-motion: reduce)');
   });
 });
+
+describe('the designer’s controls, by the handbook', () => {
+  const ui = ['Designer', 'CoverControls', 'PapersControls', 'PhotoControls', 'StampControls', 'Choice', 'Toggle', 'VisaPage', 'DateInput'].map((name) => ({
+    name,
+    source: readFileSync(new URL(`../src/ui/${name}.svelte`, import.meta.url), 'utf8'),
+  }));
+
+  it('gives every pill the suite’s tick, so a choice never rests on colour alone and the tick can pop in', () => {
+    let pills = 0;
+    for (const { name, source } of ui) {
+      const count = (source.match(/class="eu-pill/g) ?? []).length;
+      expect((source.match(/class="eu-check"/g) ?? []).length, name).toBe(count);
+      pills += count;
+    }
+    expect(pills).toBeGreaterThanOrEqual(3);
+  });
+
+  it('gives every button something to answer a click with: an icon, a swatch or a picture', () => {
+    let buttons = 0;
+    for (const { name, source } of ui) {
+      for (const match of source.matchAll(/<(button|label)\b[^>]*class="eu-btn[^"]*"[\s\S]*?<\/\1>/g)) {
+        expect(match[0], `${name}: ${match[0].slice(0, 90)}`).toMatch(/<Icon\b|<img\b|eu-swatch/);
+        buttons++;
+      }
+    }
+    expect(buttons).toBeGreaterThan(15);
+  });
+
+  it('keeps the bar of documents at the top of the window, on one line that scrolls sideways', () => {
+    const designer = ui[0]!.source;
+    expect(designer).toContain('<div class="eu-row eu-scroll bar">');
+    const rule = (selector: string): string => new RegExp(`\\n  ${selector} \\{([^}]*)\\}`).exec(designer)?.[1] ?? '';
+    expect(rule('\\.tabs')).toMatch(/position: sticky;[\s\S]*top: 0;/);
+    expect(rule('\\.tabs')).toContain('background: var(--surface);');
+    expect(rule('\\.bar')).toContain('flex-wrap: nowrap;');
+    // The result sticks below the bar, not under it.
+    expect(rule('\\.result')).toContain('top: calc(var(--bar) + var(--space-4));');
+    // A tooltip would be cut off inside a bar that scrolls, so nothing in it has one.
+    expect(/<fieldset class="tabs">[\s\S]*?<\/fieldset>/.exec(designer)![0]).not.toContain('data-tip');
+  });
+
+  it('lines the download buttons up with the picture’s size box, not with its label', () => {
+    const designer = ui[0]!.source;
+    expect(designer).toContain('<div class="eu-row saving">');
+    expect(designer).toMatch(/\.saving \{\s*align-items: flex-end;/);
+  });
+});

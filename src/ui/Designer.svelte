@@ -9,7 +9,7 @@
    *     to the drawing beside the design and is never part of the link or the profile.
    *   - Every document is shown as a picture with its description as the alternative text.
    */
-  import { faCheck, faDice, faDownload, faPlus, faRotateLeft, faStamp, faTrash } from '@fortawesome/free-solid-svg-icons';
+  import { faAddressCard, faCheck, faCreditCard, faDice, faDownload, faIdCard, faPassport, faPlus, faRotateLeft, faStamp, faTrash } from '@fortawesome/free-solid-svg-icons';
   import { createProfile, getSection, setSection, type EurthProfile } from '@eurth/profile';
   import ProfileButtons from '@eurth/profile/ProfileButtons.svelte';
   import { PICTURE_SIZES, download, fileSlug, pictureFilename, playTones, resolveColors, stateFromLocation, stateLink, stateToLocation, svgToPicture, toast } from '@eurth/style';
@@ -40,11 +40,11 @@
   let { siteName, siteUrl, armsUrl = null }: { siteName: string; siteUrl: string; armsUrl?: string | null } = $props();
 
   const tabs = [
-    { id: 'cover', name: 'Cover', file: 'passport-cover' },
-    { id: 'data', name: 'Data page', file: 'passport-data-page' },
-    { id: 'cardFront', name: 'Card, front', file: 'identity-card-front' },
-    { id: 'cardBack', name: 'Card, back', file: 'identity-card-back' },
-    { id: 'stamps', name: 'Stamps', file: 'visa-page' },
+    { id: 'cover', name: 'Cover', file: 'passport-cover', icon: faPassport },
+    { id: 'data', name: 'Data page', file: 'passport-data-page', icon: faAddressCard },
+    { id: 'cardFront', name: 'Card, front', file: 'identity-card-front', icon: faIdCard },
+    { id: 'cardBack', name: 'Card, back', file: 'identity-card-back', icon: faCreditCard },
+    { id: 'stamps', name: 'Stamps', file: 'visa-page', icon: faStamp },
   ] as const;
   type Tab = (typeof tabs)[number]['id'];
 
@@ -241,17 +241,19 @@
 </script>
 
 <div class="designer">
+  <!-- The tool's own bar: it stays at the top of the window while the page scrolls, and scrolls sideways itself when it is wider than the screen. -->
   <fieldset class="tabs">
     <legend class="eu-visually-hidden">Document</legend>
-    <div class="eu-row">
+    <div class="eu-row eu-scroll bar">
       {#each tabs as t (t.id)}
         <label class="eu-pill">
           <input type="radio" name="document" value={t.id} bind:group={tab} />
           <span class="eu-check"><Icon icon={faCheck} /></span>
+          <span class="off"><Icon icon={t.icon} /></span>
           {t.name}
         </label>
       {/each}
-      <button type="button" class="eu-btn" data-click="tumble" data-tip="A whole new set of papers" onclick={random}><Icon icon={faDice} /> Random</button>
+      <button type="button" class="eu-btn" data-click="tumble" onclick={random}><Icon icon={faDice} /> Random</button>
       <button type="button" class="eu-btn eu-btn--quiet" data-click="spin" onclick={startAgain}><Icon icon={faRotateLeft} /> Start again</button>
     </div>
   </fieldset>
@@ -278,7 +280,7 @@
             {stampKindNames[shown.stamps[chosen]?.kind ?? 'entry']} {chosen + 1} of {design.stamps.length}
           </p>
           <div class="eu-row">
-            <button type="button" class="eu-btn eu-btn--primary" onclick={() => thump(chosen)}><Icon icon={faStamp} /> Stamp it</button>
+            <button type="button" class="eu-btn eu-btn--primary" data-click="bounce" onclick={() => thump(chosen)}><Icon icon={faStamp} /> Stamp it</button>
             <button type="button" class="eu-btn" data-click="swing-left" onclick={removeStamp}><Icon icon={faTrash} /> Take it off</button>
           </div>
           <p class="eu-help">Pick a stamp on the page to change it. Drag it to move it, or use the arrow keys.</p>
@@ -322,7 +324,7 @@
         said={{ link: 'Link copied: the papers are in it.' }}
       />
 
-      <div class="eu-row">
+      <div class="eu-row saving">
         <label class="eu-field size">
           <span class="eu-label">Picture</span>
           <select class="eu-select" bind:value={size}>
@@ -361,11 +363,48 @@
     gap: var(--space-4);
   }
 
+  .designer {
+    /* How tall the bar is: a control, the room above and below it, and its rule. */
+    --bar: calc(var(--size-target) + var(--space-2) * 2 + 1px);
+  }
+
   .tabs {
+    position: sticky;
+    top: 0;
+    /* Over the documents, under the header's menus and the dialogs. */
+    z-index: 20;
     min-width: 0;
     margin: 0;
     padding: 0;
     border: 0;
+    border-bottom: 1px solid var(--line);
+    background: var(--surface);
+  }
+
+  /* One line, however narrow the screen: what doesn't fit is reached by scrolling the bar sideways. */
+  .bar {
+    flex-wrap: nowrap;
+    padding: var(--space-2) var(--size-ring);
+    scrollbar-width: thin;
+  }
+
+  .bar > * {
+    flex: 0 0 auto;
+    white-space: nowrap;
+  }
+
+  /* A document's own icon while it isn't the one shown; the suite's tick takes its place when it is. */
+  .off {
+    display: inline-flex;
+  }
+
+  .eu-pill:has(input:checked) .off {
+    display: none;
+  }
+
+  /* The picture's size has a label above it: the buttons beside it line up with the box, not with the label. */
+  .saving {
+    align-items: flex-end;
   }
 
   .bench {
@@ -381,7 +420,8 @@
 
   .result {
     position: sticky;
-    top: var(--space-4);
+    /* Below the bar, which is stuck above it. */
+    top: calc(var(--bar) + var(--space-4));
     display: flex;
     flex-direction: column;
     gap: var(--space-3);

@@ -6,7 +6,7 @@ Three parts: what comes next, what each release added (newest first), and what's
 
 ## Where to pick up
 
-**16 November 2026.** The site is built and pushed, on top of @eurth/style 1.3.0 and @eurth/profile 1.0.0: four pages, the designer, the link, the profile file, downloads, sharing, the stamp's thump and the Moon's jacket. Stijn looked at it on 16 November and asked for nine changes, all built the same day (the release section below lists them). `npm run check`, `npm run build`, `npm test` (263 tests, the suite's own included), `npm run axe` and `npm run smoke` all pass. The first build was checked in Chrome, Safari and Firefox; what was checked of the 16 November changes, and in which browser, is under "Next", item 2. Nothing is deployed, and nothing will be until the launch workflow opens the door on 19 December 2026 at 00:00 in Brussels.
+**16 November 2026.** The site is built and pushed, on top of @eurth/style 1.3.0 and @eurth/profile 1.0.0: four pages, the designer, the link, the profile file, downloads, sharing, the stamp's thump and the Moon's jacket. Stijn looked at it on 16 November and asked for fifteen changes over the day, all built the same day (the release section below lists them). `npm run check`, `npm run build`, `npm test` (271 tests, the suite's own included), `npm run axe` and `npm run smoke` all pass. The first build was checked in Chrome, Safari and Firefox; what was checked of the 16 November changes, and in which browser, is under "Next", item 2. Nothing is deployed, and nothing will be until the launch workflow opens the door on 19 December 2026 at 00:00 in Brussels.
 
 What is left is under "Next", in order. Start with the first item.
 
@@ -37,6 +37,8 @@ Decided on the way (say if you'd rather otherwise):
 
 7. **A fault to mend in @eurth/style, not here:** `calm()` and `soundOn()` answer from the script's own memory, so on a dev server (two copies of the script) a tool's island never hears the footer's Motion and Sound switches. Passport no longer depends on `calm()`; the stamp's thud still asks `playTones()`, so with `npm run dev` the Sound switch does nothing for it. Built sites are not affected. The mend belongs in the shell: answer from the page's own mark, or keep the suite out of the dev server's bundling.
 
+8. **Icons for Load profile and Save profile:** those two buttons come from @eurth/profile (`ProfileButtons.svelte`) and have no icon, so they are the only buttons here with nothing to answer a click. Ask for icons there, for every tool at once.
+
 ### After launch
 
 - More papers: a visa sticker, a driving licence, a seafarer's book, a laissez-passer.
@@ -63,7 +65,12 @@ Nine points from Stijn's first go through the designer, by his numbers.
 - **5. The preview leans and catches the light** as the pointer moves over it (`Designer.svelte`): a few degrees of tilt, and a pool of light that keeps the document's own outline. Not for touch, and not at all for visitors who asked for calm.
 - **5.1. The lean, the light and the stamp's shake follow the footer's motion switch** (`motion.ts`), on the dev server as on the built site. The designer now asks the page itself (the shell marks `<html data-motion="still">`) instead of the suite's `calm()`, and the stylesheet lays the page flat by that same mark. `calm()` keeps the switch in the script's own memory, and `npm run dev` loads the suite's script twice (once for the shell, once bundled for the designer), so the designer's copy never heard the switch there. The built site loads one copy and always did follow it.
 - **6. Random** (`invent.ts`): one button for a whole invented state, with its name put together from syllables and checked against the real world, a holder, a card and three stamps.
-- **Checks:** 263 tests, 26 of them new: the motion switch, the own-picture rules (what counts as a picture, SPECIMEN across a photograph and its switch, nothing saved), arms with a credit line, the cover's outline, foil and wear, the chip mark, and 500 random states.
+- **9. The signature is written from the holder's name** (`signature.ts`): the given name's first letter, then the surname, in a joined-up hand. Each letter is a few points the pen passes through and one smooth line runs through them all; a capital is the letter written large; past nine letters the hand trails off into a line; a flourish runs back under. Names in other scripts sign as strokes. The same name always signs the same way.
+- **10. Hair covers the head.** On five hairstyles the hair's top edge sat below the top of the skull, so a sliver of skin showed above it. The hairlines are redrawn, and a test holds the hair's outer edge outside the head.
+- **11, 13. Buttons answer a click, as the handbook has it.** The suite animates a clicked button's icon and pops a tick into a chosen pill, so a control with neither had nothing to answer with. Every on/off pill (chip symbol, arms from the profile, stamped in foil, SPECIMEN across the photograph) now has the tick, and an icon of what it switches while it is off (`Toggle.svelte`); the document tabs have an icon each; the chosen cover colour has a tick; "Stamp it" bounces. Load profile and Save profile are @eurth/profile's own buttons and still have no icon: that is for that package (item 8 under "Next").
+- **12. The download buttons line up** with the picture-size box beside them, not with its label.
+- **14. The bar of documents stays at the top** of the window while the page scrolls, on one line that scrolls sideways when the screen is narrow. The preview sticks below it.
+- **Checks:** 271 tests, 34 of them new: the signature, the hair, the pills and buttons, the bar, the motion switch, the own-picture rules (what counts as a picture, SPECIMEN across a photograph and its switch, nothing saved), arms with a credit line, the cover's outline, foil and wear, the chip mark, and 500 random states.
 
 ### 15 November 2026: the site (Phase 2; built, not yet live)
 

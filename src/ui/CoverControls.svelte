@@ -1,6 +1,6 @@
 <script lang="ts">
   /* The cover: its colour, the foil it is stamped in, the emblem (ours, the nation's arms or the visitor's own), the title in up to two languages, the chip symbol. */
-  import { faTrash, faUpload } from '@fortawesome/free-solid-svg-icons';
+  import { faCheck, faMicrochip, faShieldHalved, faStamp, faTrash, faUpload } from '@fortawesome/free-solid-svg-icons';
   import { toast } from '@eurth/style';
   import Icon from '@eurth/style/components/Icon.svelte';
   import { coverColours, coverInk, foils } from '../passport/colours';
@@ -10,6 +10,7 @@
   import { svgDataUrl } from '../passport/render';
   import Choice from './Choice.svelte';
   import { EMBLEM_FILES, emblemFromFile, pickFile } from './pictures';
+  import Toggle from './Toggle.svelte';
 
   let {
     cover = $bindable(),
@@ -68,12 +69,14 @@
   <div class="eu-row">
     {#each coverColours as colour (colour.id)}
       <button type="button" class="eu-btn" aria-pressed={preset === colour.id} onclick={() => (cover.colour = colour.hex)}>
+        {#if preset === colour.id}<Icon icon={faCheck} />{/if}
         <span class="eu-swatch" style:--swatch={colour.hex}></span>
         {colour.name}
       </button>
     {/each}
     <label class="eu-btn other" class:eu-btn--selected={preset === 'other'}>
       <input type="color" bind:value={cover.colour} />
+      {#if preset === 'other'}<Icon icon={faCheck} />{/if}
       <span class="eu-swatch" style:--swatch={cover.colour}></span>
       Any other
     </label>
@@ -108,10 +111,7 @@
     {/if}
   </div>
   {#if hasArms}
-    <label class="eu-pill arms">
-      <input type="checkbox" checked={cover.arms && !ownOn} onchange={(e) => ((cover.arms = e.currentTarget.checked), (ownOn = false))} />
-      Use the arms from the profile
-    </label>
+    <Toggle checked={cover.arms && !ownOn} icon={faShieldHalved} onchange={(on) => ((cover.arms = on), (ownOn = false))}>Use the arms from the profile</Toggle>
   {/if}
   <div class="eu-row">
     <button type="button" class="eu-btn" data-click="bounce" onclick={upload}><Icon icon={faUpload} /> {own ? 'Another emblem of your own' : 'Your own emblem'}</button>
@@ -120,10 +120,7 @@
     {/if}
   </div>
   {#if own && ownOn}
-    <label class="eu-pill arms">
-      <input type="checkbox" bind:checked={ownFoil} />
-      Stamp it in foil
-    </label>
+    <Toggle bind:checked={ownFoil} icon={faStamp}>Stamp it in foil</Toggle>
   {/if}
   <p class="eu-help">
     A picture of your own: an SVG, PNG, JPEG or WebP.
@@ -152,10 +149,7 @@
   {#if isRealCountry(cover.titles[1])}<span class="eu-error">{REAL_COUNTRY_NOTE}</span>{/if}
 </label>
 
-<label class="eu-pill chip">
-  <input type="checkbox" bind:checked={cover.chip} />
-  Chip symbol
-</label>
+<Toggle bind:checked={cover.chip} icon={faMicrochip}>Chip symbol</Toggle>
 
 <style>
   .group {
@@ -212,8 +206,4 @@
     outline-offset: var(--size-ring);
   }
 
-  .arms,
-  .chip {
-    align-self: flex-start;
-  }
 </style>

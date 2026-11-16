@@ -18,7 +18,8 @@ import { isMoonVisa, MOON_STAMP_TEXT } from './fun';
 import type { Design, DocumentRef } from './model';
 import { drawPattern } from './patterns';
 import { drawPortrait } from './portraits';
-import { hashText, n, rng } from './random';
+import { n } from './random';
+import { drawSignature } from './signature';
 import { NOTE_BOX, drawStamp, noteStamp, stampExtent } from './stamps';
 import { MONO, esc, svgOpen, text } from './svg';
 
@@ -266,20 +267,6 @@ function field(label: string, value: string, x: number, y: number, max: number, 
   );
 }
 
-/** A signature that is nobody's: a line of loops shaped by the holder's name. */
-function signature(name: string, x: number, y: number, w: number, h: number, colour: string): string {
-  const random = rng(hashText(name) || 1);
-  const steps = random.int(6, 10);
-  const dx = (w * 0.82) / steps;
-  let d = `M${n(x + 2)} ${n(y + h * 0.62)}`;
-  for (let i = 0; i < steps; i++) {
-    const up = h * random.range(0.25, 0.6) * (i === 0 ? 1.5 : 1);
-    d += `q${n(dx * 0.3)} ${n(-up)} ${n(dx * 0.5)} ${n(random.range(-2, 2))}t${n(dx * 0.5)} ${n(random.range(-2.5, 2.5))}`;
-  }
-  d += `M${n(x)} ${n(y + h * 0.9)}q${n(w * 0.45)} ${n(-random.range(2, 7))} ${n(w * 0.92)} ${n(-random.range(0, 3))}`;
-  return `<path d="${d}" fill="none" stroke="${colour}" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"/>`;
-}
-
 /** A line of tiny lettering: the state's name, over and over. */
 function microtext(name: string, x: number, y: number, w: number, ink: string): string {
   const unit = `${name.trim().toUpperCase()} · `;
@@ -309,8 +296,6 @@ function portraitFrame(design: Design, o: RenderOptions, x: number, y: number, w
   return `<rect ${box} fill="${mix(paper, ink, 0.14)}"/>${likeness}<rect ${box} fill="none" stroke="${ink}" stroke-width="1"/>`;
 }
 
-const holderName = (design: Design): string => `${design.holder.given.trim()} ${design.holder.surname.trim()}`.trim();
-
 export function renderDataPage(design: Design, o: RenderOptions = {}): string {
   const { w, h } = sizes.data;
   const { state, cover, holder, papers: p, calendar } = design;
@@ -339,7 +324,7 @@ export function renderDataPage(design: Design, o: RenderOptions = {}): string {
     field('Date of expiry', formatDate(expires, calendar), right, 214, 146, ink) +
     field('Authority', p.authority.trim(), left, 246, 324, ink) +
     text('HOLDER’S SIGNATURE', { x: 20, y: 214, size: 6.4, fill: ink, spacing: 0.6, weight: 600 }) +
-    signature(holderName(design), 20, 220, 120, 36, TEXT_DARK) +
+    drawSignature(holder.given, holder.surname, 20, 220, 120, 36, TEXT_DARK) +
     microtext(state.name, 20, 276, w - 40, ink) +
     decorativeStrip(12, 284, w - 24, 56, ink) +
     specimenOverprint(w, h) +
@@ -371,7 +356,7 @@ export function renderCardFront(design: Design, o: RenderOptions = {}): string {
     field('Card no.', p.number.trim(), left, 172, 156, ink, true) +
     field('Date of expiry', formatDate(expires, calendar), right, 172, 138, ink) +
     text('HOLDER’S SIGNATURE', { x: left, y: 206, size: 6.4, fill: ink, spacing: 0.6, weight: 600 }) +
-    signature(holderName(design), left, 210, 150, 34, TEXT_DARK) +
+    drawSignature(holder.given, holder.surname, left, 210, 150, 34, TEXT_DARK) +
     chipSymbol(w - 44, 228, 40, ink) +
     microtext(state.name, 20, 284, w - 40, ink) +
     specimenOverprint(w, h) +
