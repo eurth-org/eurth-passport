@@ -179,12 +179,14 @@ const foilStops = (base: string, cover: string): string => foilBands(base, cover
  * light picks out, the fold along the spine, a soft crease or two, and foil pressed into it.
  * All of it is drawn by the browser from a few numbers; none of it is a picture.
  */
-function coverFinish(w: number, h: number, colour: string, base: string, id: string): { defs: string; hide: string; marks: string; foil: Foil } {
+function coverFinish(w: number, h: number, colour: string, base: string, id: string, emblemBase = base): { defs: string; hide: string; marks: string; lettering: string; foil: Foil } {
   const outline = coverOutline(w, h);
   const light = `<feDistantLight azimuth="232" elevation="64"/>`;
   const defs =
     `<defs>` +
     `<linearGradient id="${id}-foil" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="${w}" y2="${n(h * 0.72)}">${foilStops(base, colour)}</linearGradient>` +
+    // The emblem's own foil, where it is stamped in another colour than the lettering.
+    (emblemBase === base ? '' : `<linearGradient id="${id}-foil-o" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="${w}" y2="${n(h * 0.72)}">${foilStops(emblemBase, colour)}</linearGradient>`) +
     `<linearGradient id="${id}-spine" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#000000" stop-opacity=".34"/><stop offset=".5" stop-color="#000000" stop-opacity=".1"/><stop offset="1" stop-color="#000000" stop-opacity="0"/></linearGradient>` +
     `<linearGradient id="${id}-fall" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffffff" stop-opacity=".09"/><stop offset=".45" stop-color="#ffffff" stop-opacity="0"/><stop offset="1" stop-color="#000000" stop-opacity=".2"/></linearGradient>` +
     // The cloth and the roll of the board: two layers of noise, each lit from the upper left.
@@ -221,39 +223,30 @@ function coverFinish(w: number, h: number, colour: string, base: string, id: str
     `<path d="${outline}" fill="none" stroke="#000000" stroke-opacity=".28" stroke-width="1.2"/>` +
     `</g>`;
   const foil: Foil = {
-    paint: `url(#${id}-foil)`,
+    paint: `url(#${id}-foil${emblemBase === base ? '' : '-o'})`,
     maskId: `${id}-own`,
     // Our emblems are drawn in a box of 100 and moved into place, so the foil is moved back to match: one sheet of light over the whole cover.
     inBox: (cx, cy, size) => {
       const k = size / 100;
       return {
-        defs: `<linearGradient id="${id}-foil-e" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="${w}" y2="${n(h * 0.72)}" gradientTransform="scale(${n(1 / k)}) translate(${n(-(cx - size / 2))} ${n(-(cy - size / 2))})">${foilStops(base, colour)}</linearGradient>`,
+        defs: `<linearGradient id="${id}-foil-e" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="${w}" y2="${n(h * 0.72)}" gradientTransform="scale(${n(1 / k)}) translate(${n(-(cx - size / 2))} ${n(-(cy - size / 2))})">${foilStops(emblemBase, colour)}</linearGradient>`,
         paint: `url(#${id}-foil-e)`,
       };
     },
   };
-  return { defs, hide: `<path d="${outline}" fill="${colour}"/><path d="${outline}" fill="${colour}" filter="url(#${id}-hide)"/>`, marks, foil };
+  return { defs, hide: `<path d="${outline}" fill="${colour}"/><path d="${outline}" fill="${colour}" filter="url(#${id}-hide)"/>`, marks, lettering: `url(#${id}-foil)`, foil };
 }
 
 export function renderCover(design: Design, o: RenderOptions = {}): string {
   const { w, h } = sizes.cover;
   const { cover, state } = design;
-  const base = arstotzkaInk(state.name, cover.colour) ?? coverInk(cover.colour, cover.foil);
-  const finish = coverFinish(w, h, cover.colour, base, prefix(o));
-  const foil = finish.foil.paint;
+  const base = coverInk(cover.colour, cover.foil);
+  // The easter egg: an Arstotzkan cover has its emblem stamped in red; the rest is as chosen (see fun.ts).
+  const emblemBase = arstotzkaInk(state.name, cover.colour) ?? base;
+  const finish = coverFinish(w, h, cover.colour, base, prefix(o), emblemBase);
+  const foil = finish.lettering;
   const two = cover.titles[1].trim().length > 0;
   const titleY = cover.chip ? (two ? 384 : 398) : two ? 404 : 420;
-  // The easter egg: an Arstotzkan cover carries its emblem and nothing else (see fun.ts).
-  if (arstotzkaInk(state.name, cover.colour)) {
-    return (
-      open(design, { kind: 'cover' }, w, h, o) +
-      finish.defs +
-      finish.hide +
-      finish.marks +
-      `<g data-part="foil" filter="url(#${prefix(o)}-press)">${device(design, o, w / 2 + 6, h / 2 - 8, 216, base, cover.colour, 1, finish.foil)}</g>` +
-      `</svg>`
-    );
-  }
   return (
     open(design, { kind: 'cover' }, w, h, o) +
     finish.defs +
@@ -261,7 +254,7 @@ export function renderCover(design: Design, o: RenderOptions = {}): string {
     finish.marks +
     `<g data-part="foil" filter="url(#${prefix(o)}-press)">` +
     coverName(state.name, w / 2, foil) +
-    device(design, o, w / 2, 236, 152, base, cover.colour, 1, finish.foil) +
+    device(design, o, w / 2, 236, 152, emblemBase, cover.colour, 1, finish.foil) +
     text(cover.titles[0].toUpperCase(), { x: w / 2, y: titleY, size: 31, max: COVER_MEASURE, min: 13, fill: foil, anchor: 'middle', spacing: 6 }) +
     (two ? text(cover.titles[1].toUpperCase(), { x: w / 2, y: titleY + 30, size: 19, max: COVER_MEASURE, min: 10, fill: foil, anchor: 'middle', spacing: 4 }) : '') +
     (cover.chip ? chipSymbol(w / 2, 450, 54, foil) : '') +

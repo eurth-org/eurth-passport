@@ -4,7 +4,7 @@
  */
 import { describe, expect, it } from 'vitest';
 import { cleanDesign } from '../src/passport/clean';
-import { contrast, coverInk, hexOf, papers, stampInks } from '../src/passport/colours';
+import { contrast, coverInk, foils, hexOf, papers, stampInks } from '../src/passport/colours';
 import { describeCard, describeCover, describeDataPage, describeDocument, describeStamp, describeVisaPage, listOf, stampLines, summarise, theOffice, titleOf, withArticle } from '../src/passport/describe';
 import { chipSymbol, contactPad, emblem, emblems } from '../src/passport/emblems';
 import { ARSTOTZKA_COVER, ARSTOTZKA_RED, ARSTOTZKA_TEXT, MOON_STAMP_TEXT, arstotzkaInk, hasMoonVisa, isArstotzka, isMoonVisa } from '../src/passport/fun';
@@ -691,56 +691,52 @@ describe('the other easter egg: Arstotzka', () => {
     expect(page).toContain('data-fiction="specimen"');
   });
 
-  it('stamps an Arstotzkan cover in red wherever red can be read, whatever foil was chosen', () => {
-    expect(ARSTOTZKA_COVER).toEqual({ colour: '#1a1a1a', emblem: 'star' });
-    expect(contrast(ARSTOTZKA_RED, ARSTOTZKA_COVER.colour)).toBeGreaterThanOrEqual(3);
-    expect(arstotzkaInk('Arstotzka', '#1a1a1a')).toBe(ARSTOTZKA_RED);
-    expect(arstotzkaInk('Republic of Teland', '#1a1a1a')).toBeNull();
-    // Not on a cover where red would vanish: there the usual rule for a readable foil holds.
-    expect(arstotzkaInk('Arstotzka', '#5b1a28')).toBeNull();
-    for (const foil of foilIds) {
-      const cover = renderCover(tweak((x) => Object.assign(x, { state: { name: 'Arstotzka', demonym: 'Arstotzkan' } }, { cover: { ...x.cover, ...ARSTOTZKA_COVER, foil } })));
-      expect(cover, foil).toContain(`stop-color="${ARSTOTZKA_RED}"`);
-      expect(cover, foil).not.toMatch(/#e8c46a|#d5d9dc|#f7f3e8/);
-      expect(problems(cover), foil).toEqual([]);
-    }
-    const burgundy = renderCover(tweak((x) => (x.state.name = 'Arstotzka')));
-    expect(burgundy).not.toContain(ARSTOTZKA_RED);
-    expect(burgundy).toContain('#e8c46a');
-    // The words say what is drawn.
-    expect(describeCover(tweak((x) => Object.assign(x, { state: { name: 'Arstotzka', demonym: 'Arstotzkan' } }, { cover: { ...x.cover, ...ARSTOTZKA_COVER } })))).toBe(
-      'Passport cover of Arstotzka. A black cover that carries a five-pointed star in a ring and nothing else, stamped in scarlet.',
-    );
-    // Every other state's cover is as it was.
-    expect(renderCover(tweak((x) => (x.cover.colour = '#1a1a1a')))).not.toContain(ARSTOTZKA_RED);
-  });
-
-  it('puts nothing on an Arstotzkan cover but its emblem: no name, no title, no chip', () => {
+  it('stamps the emblem of an Arstotzkan cover in red wherever red can be read, and leaves the rest as chosen', () => {
     const arstotzkan = (change: (d: Design) => void = () => {}): Design =>
       tweak((x) => {
         Object.assign(x, { state: { name: 'Arstotzka', demonym: 'Arstotzkan' } }, { cover: { ...x.cover, ...ARSTOTZKA_COVER, titles: ['Passport', 'Pasport'], chip: true } });
         change(x);
       });
-    const cover = renderCover(arstotzkan());
-    expect(cover).not.toMatch(/<text\b/);
-    expect(cover).not.toContain('data-part="chip"');
-    expect(cover.match(/<g data-part="foil"/g)).toHaveLength(1);
-    expect(cover).toContain('url(#pp-foil-e)');
-    expect(problems(cover)).toEqual([]);
-    // Whatever stands for the emblem is the one thing on it: any of ours, or the visitor's own picture.
-    for (const id of emblemIds) expect(renderCover(arstotzkan((x) => (x.cover.emblem = id))), id).not.toMatch(/<text\b|data-part="chip"/);
-    const own = renderCover(arstotzkan(), { emblem: 'data:image/png;base64,iVBORw0KGgo=' });
-    expect(own.match(/<image\b/g)).toHaveLength(1);
-    expect(own).not.toMatch(/<text\b|pp-foil-e/);
-    expect(describeCover(arstotzkan(), { ownEmblem: true })).toBe('Passport cover of Arstotzka. A black cover that carries an emblem of the maker’s own and nothing else.');
-    // The picture still says whose cover it is, for anyone who can't see it.
-    expect(cover).toContain('<title>Passport cover of Arstotzka</title>');
-    // On a cover where red can't be read the joke stands down, and the cover is an ordinary one.
+    expect(ARSTOTZKA_COVER).toEqual({ colour: '#1a1a1a', emblem: 'star' });
+    expect(contrast(ARSTOTZKA_RED, ARSTOTZKA_COVER.colour)).toBeGreaterThanOrEqual(3);
+    expect(arstotzkaInk('Arstotzka', '#1a1a1a')).toBe(ARSTOTZKA_RED);
+    expect(arstotzkaInk('Republic of Teland', '#1a1a1a')).toBeNull();
+    // Not on a cover where red would vanish.
+    expect(arstotzkaInk('Arstotzka', '#5b1a28')).toBeNull();
+
+    const stops = (svg: string, id: string): string => new RegExp(`<linearGradient id="${id}"[^>]*>(.*?)</linearGradient>`).exec(svg)?.[1] ?? '';
+    for (const foil of foilIds) {
+      const cover = renderCover(arstotzkan((x) => (x.cover.foil = foil)));
+      // The usual fields, in the usual lettering.
+      expect(textsOf(cover).slice(2), foil).toEqual(['ARSTOTZKA', 'PASSPORT', 'PASPORT']);
+      expect(cover, foil).toContain('data-part="chip"');
+      expect(stops(cover, 'pp-foil'), foil).toContain(`stop-color="${hexOf(foils, foil)}"`);
+      expect(stops(cover, 'pp-foil'), foil).not.toContain(ARSTOTZKA_RED);
+      for (const line of ['ARSTOTZKA', 'PASSPORT']) expect(cover, foil).toMatch(new RegExp(`<text [^>]*fill="url\\(#pp-foil\\)"[^>]*>${line}</text>`));
+      // Only the emblem is red.
+      expect(stops(cover, 'pp-foil-e'), foil).toContain(`stop-color="${ARSTOTZKA_RED}"`);
+      expect(stops(cover, 'pp-foil-e'), foil).not.toContain(hexOf(foils, foil));
+      expect(problems(cover), foil).toEqual([]);
+    }
+    for (const id of emblemIds) expect(renderCover(arstotzkan((x) => (x.cover.emblem = id))), id).toContain(`stop-color="${ARSTOTZKA_RED}"`);
+    // A visitor's own emblem keeps its own colours, or is stamped in the red foil if they ask for foil.
+    const own = 'data:image/png;base64,iVBORw0KGgo=';
+    expect(renderCover(arstotzkan(), { emblem: own })).toMatch(/<image href="data:image\/png;base64,[^"]+"[^>]*\/>/);
+    expect(renderCover(arstotzkan(), { emblem: own })).not.toMatch(/mask=|pp-foil-e/);
+    expect(renderCover(arstotzkan(), { emblem: own, emblemFoil: true })).toMatch(/fill="url\(#pp-foil-o\)" mask="url\(#pp-own\)"/);
+    expect(stops(renderCover(arstotzkan(), { emblem: own, emblemFoil: true }), 'pp-foil-o')).toContain(ARSTOTZKA_RED);
+    // On a burgundy cover the joke stands down and the cover is an ordinary one.
     const burgundy = renderCover(arstotzkan((x) => (x.cover.colour = '#5b1a28')));
-    expect(textsOf(burgundy).slice(2)).toEqual(['ARSTOTZKA', 'PASSPORT', 'PASPORT']);
-    expect(burgundy).toContain('data-part="chip"');
-    // The papers inside are ordinary too.
-    expect(textsOf(renderDataPage(arstotzkan()))).toEqual(expect.arrayContaining(['ARSTOTZKA', 'Ashdale']));
+    expect(burgundy).not.toContain(ARSTOTZKA_RED);
+    expect(burgundy).toBe(renderCover(arstotzkan((x) => (x.cover.colour = '#5b1a28'))));
+    // The words say what is drawn.
+    expect(describeCover(arstotzkan((x) => (x.cover.titles = ['Passport', ''])))).toBe(
+      'Passport cover of Arstotzka. A black cover with gold lettering: the state’s name at the top, a five-pointed star in a ring in scarlet in the middle, “Passport” below and a chip symbol at the foot.',
+    );
+    expect(describeCover(arstotzkan(), { ownEmblem: true })).toContain('an emblem of the maker’s own in the middle');
+    // Every other state's cover is as it was, to the letter.
+    expect(renderCover(tweak((x) => (x.cover.colour = '#1a1a1a')))).not.toContain(ARSTOTZKA_RED);
+    expect(renderCover(tweak((x) => (x.cover.colour = '#1a1a1a')))).not.toContain('pp-foil-o');
   });
 
   it('draws nothing of the game’s own: the emblem is one of ours, and no picture is added', () => {

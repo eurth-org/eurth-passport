@@ -14,7 +14,7 @@ import { specimenOverprint } from '../src/passport/fiction';
 import { LINK_PARAM, compactDesign, decodeDesign, encodeDesign, expandDesign, toQuery } from '../src/passport/link';
 import { MAX_STAMPS, defaultDesign, type Design } from '../src/passport/model';
 import { designFromProfile, nextSection, withPassport } from '../src/passport/profile';
-import { PAGE_SCALE, documentsOf, renderShare, renderStamp, sizes, stampCentre, stampOnPage, stampPlace } from '../src/passport/render';
+import { PAGE_SCALE, documentsOf, renderDocument, renderShare, renderStamp, sizes, stampCentre, stampOnPage, stampPlace } from '../src/passport/render';
 import { stampExtent } from '../src/passport/stamps';
 import { templates } from '../src/passport/templates';
 import { problems, randomDesign } from './helpers/designs';
@@ -271,30 +271,51 @@ describe('the designer’s controls, by the handbook', () => {
   });
 });
 
-describe('Arstotzka in the designer: dark, colourless, square and pixelled, and all of it on screen only', () => {
+describe('Arstotzka in the designer: dark, colourless, square, and set in a pixel typeface', () => {
   const designer = readFileSync(new URL('../src/ui/Designer.svelte', import.meta.url), 'utf8');
 
   it('goes to the suite’s own Night theme while the name stands, and back to what it was after', () => {
     expect(designer).toContain("root.dataset.theme = 'dark';");
     expect(designer).toContain("themeBefore = root.getAttribute('data-theme');");
     expect(designer).toMatch(/if \(themeBefore === null\) root\.removeAttribute\('data-theme'\);\s*else root\.dataset\.theme = themeBefore;/);
+    expect(designer).toContain("root.dataset.arstotzka = '';");
+    expect(designer).toContain('delete root.dataset.arstotzka;');
     // Nothing is kept for it: no storage, and not the visit's own choices either.
     expect(designer).not.toMatch(/localStorage|sessionStorage|setPrefs/);
   });
 
-  it('uses only the suite’s tokens for the look: its fixed-width type, no colour of its own', () => {
-    const bleak = designer.slice(designer.indexOf('/* Arstotzka: the colour drains'), designer.indexOf("/* The picture's size has a label above it"));
-    expect(bleak).toContain('filter: grayscale(0.9);');
-    expect(bleak).toContain('font-family: var(--font-mono) !important;');
-    expect(bleak).toContain('border-radius: 0 !important;');
-    expect(bleak).toContain('image-rendering: pixelated;');
-    expect(bleak).not.toMatch(/#[0-9a-f]{3,6}\b|rgb\(/i);
+  it('sets the words of the interface in Departure Mono, from this site’s own files, with its licence beside it', () => {
+    expect(designer).toMatch(/@font-face \{\s*font-family: 'Departure Mono';\s*src: url\('\/fonts\/DepartureMono-Regular\.woff2'\) format\('woff2'\);\s*font-display: swap;/);
+    expect(designer).toContain(":global(html[data-arstotzka] *)");
+    expect(designer).toContain("font-family: 'Departure Mono', var(--font-mono) !important;");
+    // Nothing is fetched from another address, and the font is the real file.
+    expect(designer).not.toMatch(/url\(['"]?https?:/);
+    const font = readFileSync(new URL('../public/fonts/DepartureMono-Regular.woff2', import.meta.url));
+    expect(font.subarray(0, 4).toString('latin1')).toBe('wOF2');
+    expect(font.length).toBeGreaterThan(10000);
+    const licence = readFileSync(new URL('../public/fonts/DepartureMono-OFL.txt', import.meta.url), 'utf8');
+    expect(licence).toContain('Helena Zhang');
+    expect(licence).toContain('SIL Open Font License, Version 1.1');
   });
 
-  it('pixels the preview only: what is downloaded, copied or shared is drawn from the document itself', () => {
-    expect(designer).toContain('src={pixels ?? svgDataUrl(svg)}');
-    // The pixelled picture is made from `svg` and never handed on: every way out takes the vector drawing.
-    expect(designer).toMatch(/if \(!preset\) return \{ svg, width: box\.w \* 2/);
-    expect(designer).not.toMatch(/download\([^)]*pixels|picture=\{[^}]*pixels/);
+  it('credits the typeface in the footer of the page that uses it', () => {
+    const page = readFileSync(new URL('../src/pages/index.astro', import.meta.url), 'utf8');
+    const credit = /<Fragment slot="inspirations">([\s\S]*?)<\/Fragment>/.exec(page)![1]!;
+    expect(credit).toContain('Departure Mono</a> by Helena Zhang');
+    expect(credit).toContain('href="/fonts/DepartureMono-OFL.txt"');
+  });
+
+  it('leaves the documents alone: they are pictures with their own lettering, never pixelled and never in that typeface', () => {
+    expect(designer).toContain('<img class="document" src={svgDataUrl(svg)}');
+    expect(designer).not.toMatch(/image-rendering|pixels/);
+    const design = cleanDesign({ ...defaultDesign(), state: { name: 'Arstotzka', demonym: 'Arstotzkan' } });
+    for (const ref of documentsOf(design)) expect(renderDocument(design, ref), ref.kind).not.toMatch(/Departure/);
+  });
+
+  it('uses no colour of its own for the look', () => {
+    const bleak = designer.slice(designer.indexOf('/* Arstotzka: the colour drains'), designer.indexOf("/* The picture's size has a label above it"));
+    expect(bleak).toContain('filter: grayscale(0.9);');
+    expect(bleak).toContain('border-radius: 0 !important;');
+    expect(bleak).not.toMatch(/#[0-9a-f]{3,6}\b|rgb\(/i);
   });
 });

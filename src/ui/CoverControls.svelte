@@ -58,13 +58,13 @@
 
   const preset = $derived(coverColours.find((c) => c.hex === cover.colour.toLowerCase())?.id ?? 'other');
   const egg = $derived(arstotzkaInk(stateName, cover.colour));
-  const foil = $derived(egg ?? coverInk(cover.colour, cover.foil));
+  const foil = $derived(coverInk(cover.colour, cover.foil));
   // Each emblem as it would look on this cover: the cover's colour behind, the foil in front.
   const swatches = $derived(
     emblems.map((e) => ({
       id: e.id,
       name: e.name,
-      src: svgDataUrl(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="-10 -10 120 120"><rect x="-10" y="-10" width="120" height="120" rx="12" fill="${cover.colour}"/>${e.draw(foil, cover.colour)}</svg>`),
+      src: svgDataUrl(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="-10 -10 120 120"><rect x="-10" y="-10" width="120" height="120" rx="12" fill="${cover.colour}"/>${e.draw(egg ?? foil, cover.colour)}</svg>`),
     })),
   );
 </script>
@@ -89,14 +89,13 @@
 </fieldset>
 
 <Choice legend="Lettering" name="foil" options={foils} bind:value={cover.foil} />
-{#if egg}
-  <p class="eu-help">Arstotzka stamps its covers in red, whatever is chosen here, and puts nothing on them but the emblem.</p>
-{:else if foil !== foils.find((f) => f.id === cover.foil)?.hex}
+{#if foil !== foils.find((f) => f.id === cover.foil)?.hex}
   <p class="eu-help">That foil can’t be read on this colour, so the cover is stamped in the nearest thing that can.</p>
 {/if}
 
 <fieldset class="group">
   <legend class="eu-label">Emblem</legend>
+  {#if egg}<p class="eu-help">Arstotzka stamps its emblem in red.</p>{/if}
   <div class="grid">
     {#each swatches as emblem (emblem.id)}
       <button

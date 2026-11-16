@@ -123,51 +123,25 @@
     arrived = true;
   });
 
-  // While the state is Arstotzka the whole page goes to the suite's Night theme, and comes back
-  // to what it was after. Nothing is kept: this is the page's own mark, set and unset here.
+  // While the state is Arstotzka the whole page goes to the suite's Night theme and is set in a
+  // pixel typeface (the stylesheet below hangs that on the mark set here), and comes back to
+  // what it was after. Nothing is kept: these are the page's own marks, set and unset here.
   let themeBefore: string | null | undefined;
   $effect(() => {
     const root = document.documentElement;
     if (bleak && themeBefore === undefined) {
       themeBefore = root.getAttribute('data-theme');
       root.dataset.theme = 'dark';
+      root.dataset.arstotzka = '';
     } else if (!bleak && themeBefore !== undefined) {
       // Only if it is still as it was left: a visitor who changed the theme meanwhile keeps their choice.
       if (root.dataset.theme === 'dark') {
         if (themeBefore === null) root.removeAttribute('data-theme');
         else root.dataset.theme = themeBefore;
       }
+      delete root.dataset.arstotzka;
       themeBefore = undefined;
     }
-  });
-
-  // And the preview is drawn small and shown large, in plain squares. On screen only: every
-  // download is the document as it always is.
-  let pixels = $state<string | null>(null);
-  let pixelUrl: string | null = null;
-  const showPixels = (url: string | null): void => {
-    const old = pixelUrl;
-    pixelUrl = url;
-    pixels = url;
-    if (old) URL.revokeObjectURL(old);
-  };
-  $effect(() => {
-    if (!bleak || tab === 'stamps') {
-      showPixels(null);
-      return;
-    }
-    const share = tab === 'cover' ? 0.3 : 0.5;
-    let stale = false;
-    svgToPicture(svg, { width: Math.round(box.w * share), height: Math.round(box.h * share) })
-      .then((blob) => {
-        if (!stale) showPixels(URL.createObjectURL(blob));
-      })
-      .catch(() => {
-        if (!stale) showPixels(null);
-      });
-    return () => {
-      stale = true;
-    };
   });
 
   /** The signature touch: the stamp thumps onto the page, and the page takes the knock. */
@@ -370,8 +344,8 @@
         <!-- The lean and the light are for the eye only: nothing here is pressed, and nothing moves for a visitor who asked for calm. -->
         <div class="stage" class:upright={tab === 'cover'} onpointermove={tilt} onpointerleave={settle} role="presentation">
           <div class="leaf" class:lit bind:this={leaf}>
-            <img class="document" class:pixel={pixels !== null} src={pixels ?? svgDataUrl(svg)} alt={description} width={box.w} height={box.h} />
-            {#if glow}<img class="shine" class:pixel={pixels !== null} src={pixels ?? svgDataUrl(svg)} alt="" aria-hidden="true" width={box.w} height={box.h} />{/if}
+            <img class="document" src={svgDataUrl(svg)} alt={description} width={box.w} height={box.h} />
+            {#if glow}<img class="shine" src={svgDataUrl(svg)} alt="" aria-hidden="true" width={box.w} height={box.h} />{/if}
           </div>
         </div>
       {/if}
@@ -478,16 +452,28 @@
     filter: grayscale(0.9);
   }
 
-  /* And everything goes square and typewritten: no round corner anywhere, the suite's own fixed-width type throughout. */
+  /* And everything in the designer goes square: no round corner anywhere. */
   .bleak,
   .bleak :global(*) {
     border-radius: 0 !important;
-    font-family: var(--font-mono) !important;
   }
 
-  /* The preview, drawn small and shown large, keeps its squares. */
-  .pixel {
-    image-rendering: pixelated;
+  /*
+   * The pixel typeface, for the words of the interface on the whole page while the name stands:
+   * Departure Mono by Helena Zhang (SIL Open Font License 1.1; the licence is beside the file,
+   * and the footer credits it). It is the one typeface of its own this site carries, at Stijn's
+   * word, and it is fetched only when it is first needed. The documents are pictures and keep
+   * their own lettering.
+   */
+  @font-face {
+    font-family: 'Departure Mono';
+    src: url('/fonts/DepartureMono-Regular.woff2') format('woff2');
+    font-display: swap;
+  }
+
+  :global(html[data-arstotzka]),
+  :global(html[data-arstotzka] *) {
+    font-family: 'Departure Mono', var(--font-mono) !important;
   }
 
   /* The picture's size has a label above it: the buttons beside it line up with the box, not with the label. */
