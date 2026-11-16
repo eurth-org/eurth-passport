@@ -8,8 +8,9 @@
  *    portraits.ts), and a profile's arms are used only when they are pure vector drawing
  *    (vectorOnly, below). A visitor may lay their own emblem or photograph over a document for
  *    the visit (ownPicture, below): it is handed to the drawing functions beside the design,
- *    never inside it, so no link, profile or saved design can hold one. A photograph always
- *    has SPECIMEN across it (photoSpecimen), besides the overprint on the page.
+ *    never inside it, so no link, profile or saved design can hold one. A photograph has
+ *    SPECIMEN across it too (photoSpecimen) unless the visitor takes that one mark off. The
+ *    overprint on the page itself is rule 1, and is nobody's to take off.
  * 3. No real countries: not in the presets, and not as the issuing state (isRealCountry).
  * 4. No machine-readable zone: a decorative strip that reads as words stands where a real
  *    passport has one, and no text field can hold a line that looks like one (breakLongRuns).
@@ -174,8 +175,9 @@ export function ownPicture(value: unknown): value is string {
 
 /**
  * SPECIMEN across a photograph, in the box the photograph fills. A real face is the one thing
- * on these papers that isn't invented, so it never stands without the word over it. Like the
- * overprint below, it takes no options.
+ * on these papers that isn't invented, so the word goes over it unless the visitor says
+ * otherwise (RenderOptions.photoMark in render.ts). This is a second mark, apart from the
+ * overprint below, which has no such switch.
  */
 export function photoSpecimen(x: number, y: number, w: number, h: number): string {
   const size = w * 0.17;

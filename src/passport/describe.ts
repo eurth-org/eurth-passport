@@ -56,7 +56,8 @@ function devicePhrase(design: Design, options: DescribeOptions): string {
 
 /** The likeness on a data page or card, in words. */
 function portraitPhrase(design: Design, options: DescribeOptions): string {
-  return options.photo ? 'a photograph the maker added, with SPECIMEN across it' : describePortrait(design.papers.portrait);
+  if (!options.photo) return describePortrait(design.papers.portrait);
+  return options.photoMarked === false ? 'a photograph the maker added' : 'a photograph the maker added, with SPECIMEN across it';
 }
 
 export function describeCover(design: Design, options: DescribeOptions = {}): string {
@@ -146,6 +147,8 @@ export interface DescribeOptions {
   ownEmblem?: boolean;
   /** Whether the visitor's own photograph stands where the drawn portrait would. */
   photo?: boolean;
+  /** Whether that photograph has SPECIMEN across it. It has, unless this is exactly false. */
+  photoMarked?: boolean;
 }
 
 /** A short name for a document: "Passport cover of the Republic of Teland". */

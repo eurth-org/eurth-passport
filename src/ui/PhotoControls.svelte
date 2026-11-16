@@ -2,7 +2,8 @@
   /*
    * The visitor's own photograph for the data page and the card: picked from their device, cut
    * to four by five here, moved and enlarged with the sliders or by dragging. It is kept in
-   * memory for the visit and nowhere else, and every document draws SPECIMEN across it.
+   * memory for the visit and nowhere else. SPECIMEN is drawn across it unless the visitor
+   * switches that one mark off; the overprint on the page has no switch.
    */
   import { faImage, faTrash } from '@fortawesome/free-solid-svg-icons';
   import { toast } from '@eurth/style';
@@ -10,7 +11,7 @@
   import { OWN_PICTURE_NOTE } from '../passport/fiction';
   import { MAX_ZOOM, MIN_ZOOM, PHOTO_FILES, centred, cropPhoto, photoFromFile, pickFile, slack, type Crop } from './pictures';
 
-  let { photo = $bindable() }: { photo: string | null } = $props();
+  let { photo = $bindable(), mark = $bindable() }: { photo: string | null; /** SPECIMEN across the photograph: on, unless switched off here. */ mark: boolean } = $props();
 
   // The photograph as it was picked: held here, in memory, for as long as the page is open.
   let source = $state.raw<HTMLImageElement | null>(null);
@@ -39,7 +40,7 @@
       crop = centred();
       photo = cropPhoto(picked, crop);
       source = picked;
-      toast('Your photograph is on the papers, with SPECIMEN across it.');
+      toast(mark ? 'Your photograph is on the papers, with SPECIMEN across it.' : 'Your photograph is on the papers.');
     } catch (error) {
       toast(error instanceof Error ? error.message : 'That file couldn’t be read as a picture.');
     }
@@ -94,12 +95,16 @@
     <button type="button" class="eu-btn" data-click="bounce" onclick={choose}><Icon icon={faImage} /> Another photograph</button>
     <button type="button" class="eu-btn" data-click="swing-left" onclick={remove}><Icon icon={faTrash} /> Take it off</button>
   </div>
-  <p class="eu-help">Drag the photograph to move it, or use the sliders. {OWN_PICTURE_NOTE}</p>
+  <label class="eu-pill mark">
+    <input type="checkbox" bind:checked={mark} />
+    SPECIMEN across the photograph
+  </label>
+  <p class="eu-help">Drag the photograph to move it, or use the sliders. The SPECIMEN across the page itself always stays. {OWN_PICTURE_NOTE}</p>
 {:else}
   <div class="eu-row">
     <button type="button" class="eu-btn" data-click="bounce" onclick={choose}><Icon icon={faImage} /> Your own photograph</button>
   </div>
-  <p class="eu-help">One of the drawings, or a photograph of your own, with SPECIMEN across it. {OWN_PICTURE_NOTE}</p>
+  <p class="eu-help">One of the drawings, or a photograph of your own. {OWN_PICTURE_NOTE}</p>
 {/if}
 
 <style>
@@ -129,6 +134,10 @@
     width: 100%;
     height: auto;
     user-select: none;
+  }
+
+  .mark {
+    align-self: flex-start;
   }
 
   .sliders {

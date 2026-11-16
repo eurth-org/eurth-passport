@@ -234,7 +234,7 @@ export const glossary: readonly Term[] = [
     id: 'portrait',
     term: 'Portrait',
     definition:
-      'The picture of the holder on the data page or card, and the largest thing on it, because a face is what an officer compares. In Passport portraits are the tool’s own drawings; a photograph of your own can stand in for one during a visit, with SPECIMEN across it, and is never kept.',
+      'The picture of the holder on the data page or card, and the largest thing on it, because a face is what an officer compares. In Passport portraits are the tool’s own drawings; a photograph of your own can stand in for one during a visit, with SPECIMEN across it unless you switch that off, and is never kept.',
     see: ['ghost-image', 'holder', 'data-page'],
   },
   {

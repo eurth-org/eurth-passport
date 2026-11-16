@@ -42,6 +42,11 @@ export interface RenderOptions {
   emblemFoil?: boolean;
   /** The visitor's own photograph, for this visit, already cut to four by five (see ownPicture). */
   photo?: string | null;
+  /**
+   * SPECIMEN across that photograph. It is drawn unless this is exactly false: the one mark a
+   * visitor may take off. The overprint on the page is not this, and has no option at all.
+   */
+  photoMark?: boolean;
   /** Makes ids unique where several drawings share one page. Letters, digits and hyphens. */
   idPrefix?: string;
   /** For a stamp on its own: on clear (the default) or on a patch of paper. */
@@ -60,6 +65,11 @@ export function photoUsed(o: RenderOptions = {}): boolean {
   return ownPicture(o.photo);
 }
 
+/** Whether a visitor's photograph is drawn with SPECIMEN across it: always, unless they took that mark off. */
+export function photoMarked(o: RenderOptions = {}): boolean {
+  return photoUsed(o) && o.photoMark !== false;
+}
+
 /** Whether the arms a caller offers will really be drawn on the cover. */
 export function armsUsed(design: Design, o: RenderOptions = {}): boolean {
   return !ownEmblemUsed(o) && design.cover.arms && vectorOnly(o.arms);
@@ -67,7 +77,7 @@ export function armsUsed(design: Design, o: RenderOptions = {}): boolean {
 
 /** What the words about a document need to know of how it is drawn. */
 export function describing(design: Design, o: RenderOptions = {}): DescribeOptions {
-  return { armsUsed: armsUsed(design, o), ownEmblem: ownEmblemUsed(o), photo: photoUsed(o) };
+  return { armsUsed: armsUsed(design, o), ownEmblem: ownEmblemUsed(o), photo: photoUsed(o), photoMarked: photoMarked(o) };
 }
 
 /** An SVG as the address of a picture. Inside an image element the browser draws it and runs none of it. */
@@ -288,13 +298,13 @@ function sheet(design: Design, w: number, h: number, radius: number, id: string,
   );
 }
 
-/** The holder's likeness: one of our drawings, or the visitor's own photograph with SPECIMEN across it. */
+/** The holder's likeness: one of our drawings, or the visitor's own photograph, with SPECIMEN across it unless they took that off. */
 function portraitFrame(design: Design, o: RenderOptions, x: number, y: number, w: number, ink: string): string {
   const paper = hexOf(papers, design.papers.paper);
   const h = w * 1.25;
   const box = `x="${n(x)}" y="${n(y)}" width="${n(w)}" height="${n(h)}"`;
   const likeness = photoUsed(o)
-    ? `<image href="${esc(o.photo!)}" ${box} preserveAspectRatio="xMidYMid slice"/>${photoSpecimen(x, y, w, h)}`
+    ? `<image href="${esc(o.photo!)}" ${box} preserveAspectRatio="xMidYMid slice"/>${photoMarked(o) ? photoSpecimen(x, y, w, h) : ''}`
     : `<svg ${box} viewBox="0 0 100 125">${drawPortrait(design.papers.portrait)}</svg>`;
   return `<rect ${box} fill="${mix(paper, ink, 0.14)}"/>${likeness}<rect ${box} fill="none" stroke="${ink}" stroke-width="1"/>`;
 }

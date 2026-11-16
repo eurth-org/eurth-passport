@@ -6,7 +6,7 @@ Three parts: what comes next, what each release added (newest first), and what's
 
 ## Where to pick up
 
-**16 November 2026.** The site is built and pushed, on top of @eurth/style 1.3.0 and @eurth/profile 1.0.0: four pages, the designer, the link, the profile file, downloads, sharing, the stamp's thump and the Moon's jacket. Stijn looked at it on 16 November and asked for nine changes, all built the same day (the release section below lists them). `npm run check`, `npm run build`, `npm test` (257 tests, the suite's own included), `npm run axe` and `npm run smoke` all pass. The first build was checked in Chrome, Safari and Firefox; what was checked of the 16 November changes, and in which browser, is under "Next", item 2. Nothing is deployed, and nothing will be until the launch workflow opens the door on 19 December 2026 at 00:00 in Brussels.
+**16 November 2026.** The site is built and pushed, on top of @eurth/style 1.3.0 and @eurth/profile 1.0.0: four pages, the designer, the link, the profile file, downloads, sharing, the stamp's thump and the Moon's jacket. Stijn looked at it on 16 November and asked for nine changes, all built the same day (the release section below lists them). `npm run check`, `npm run build`, `npm test` (258 tests, the suite's own included), `npm run axe` and `npm run smoke` all pass. The first build was checked in Chrome, Safari and Firefox; what was checked of the 16 November changes, and in which browser, is under "Next", item 2. Nothing is deployed, and nothing will be until the launch workflow opens the door on 19 December 2026 at 00:00 in Brussels.
 
 What is left is under "Next", in order. Start with the first item.
 
@@ -18,7 +18,7 @@ Decided on the way (say if you'd rather otherwise):
 - **Dates are picked in the world's own calendar** (its months, month lengths and era) when the profile has one. Nothing is converted from ours.
 - **A profile's arms are used only if they are pure vector drawing.** An SVG that wraps a photograph, a link or a script is turned away and one of our emblems stands in. Plain words in its title and description are let through, so the licence address in the credit line Arms writes for its lions no longer turns arms away (it did until 16 November). That credit line is shown under the papers and added to Copy description.
 - **A visitor's own photograph and emblem are for the visit only** (Stijn, 16 November 2026, replacing "no photo uploads"). They are handed to the drawing beside the design, so the link, the profile and the saved cover never hold them; the profile's cover picture shows the design's own emblem or the nation's arms. An SVG that is pure drawing stays an SVG; anything else is drawn onto a canvas and kept as a PNG or JPEG, which also means nothing in an uploaded file can run.
-- **A photograph always has SPECIMEN across it,** besides the overprint on the page, which on the data page passes below the portrait. This was not asked for: it was added because a real face is the one thing on these papers that isn't invented. Say if you'd rather it went.
+- **A photograph has SPECIMEN across it, with a switch.** The mark was added unasked, because a real face is the one thing on these papers that isn't invented and the page's overprint passes below the portrait on the data page. Stijn first had it taken off, then asked to keep it or have a button (16 November 2026): so it is on by default, with a switch beside the photograph, for the visit only. The switch is for that one mark. The overprint on the page itself has none, as the brief says; a switch for that would be a change to the brief, and was not read into "a button to enable/disable specimen".
 - **The cover's wear is not a setting.** Every cover has the same cloth grain, fold and creases. A choice between a new booklet and a worn one is under "After launch".
 - **Random keeps a loaded nation.** With a profile loaded, Random changes the look, the holder and the stamps, and keeps the name, the people, the calendar and the arms.
 - **The link is the suite's own form,** `?d=1.…`, so the shared helpers read and write it.
@@ -56,11 +56,11 @@ Nine points from Stijn's first go through the designer, by his numbers.
 - **1, 7, 8. A cover like a real booklet** (`render.ts`): square at the spine and round only where it opens (the pages inside keep four round corners); cloth grain, a slight roll in the board, a fold by the spine and two soft creases, all drawn by SVG filters from a few numbers; name, emblem, title and chip stamped in foil that catches the light, pressed into the board. Every band of the foil stays readable on its cover (3:1 or better).
 - **4. The chip symbol** (`emblems.ts`) is drawn as on real passports: a bar above, a bar below, a line across and a circle in the middle.
 - **2, 4.1. Your own emblem on the cover** (`CoverControls.svelte`, `pictures.ts`): an SVG, PNG, JPEG or WebP, in its own colours or stamped in foil by its outline. Arms made in Arms work as downloaded, and picking a nation's profile file there takes just its arms. The arms' credit line is shown under the papers.
-- **3. Your own photograph on the data page and card** (`PhotoControls.svelte`): cropped to four by five, moved by dragging or with three sliders, with SPECIMEN across it.
+- **3. Your own photograph on the data page and card** (`PhotoControls.svelte`): cropped to four by five, moved by dragging or with three sliders, with SPECIMEN across it unless the switch beside it is turned off.
 - **Neither picture is stored:** not uploaded, not in the browser's storage, not in the link, not in the profile. The fiction rule on pictures was rewritten for this in `fiction.ts`, the guide, the start page, the glossary and the README, and `CLAUDE.md` records the change to the brief.
 - **5. The preview leans and catches the light** as the pointer moves over it (`Designer.svelte`): a few degrees of tilt, and a pool of light that keeps the document's own outline. Not for touch, and not at all for visitors who asked for calm.
 - **6. Random** (`invent.ts`): one button for a whole invented state, with its name put together from syllables and checked against the real world, a holder, a card and three stamps.
-- **Checks:** 257 tests, 20 of them new: the own-picture rules (what counts as a picture, SPECIMEN across a photograph, nothing saved), arms with a credit line, the cover's outline, foil and wear, the chip mark, and 500 random states.
+- **Checks:** 258 tests, 21 of them new: the own-picture rules (what counts as a picture, SPECIMEN across a photograph and its switch, nothing saved), arms with a credit line, the cover's outline, foil and wear, the chip mark, and 500 random states.
 
 ### 15 November 2026: the site (Phase 2; built, not yet live)
 
@@ -94,7 +94,6 @@ Known limits, for Phase 2 or after:
 ## Not planned
 
 - **Keeping a visitor's photograph or emblem** anywhere: on a server, in the browser, in the link or in the profile. (Until 16 November 2026 photographs were ruled out altogether; Stijn changed that.)
-- **A photograph without SPECIMEN across it.**
 - **Switching off SPECIMEN.** It is part of the drawing, not a setting.
 - **A real machine-readable zone,** or anything a document reader would accept.
 - **Real countries,** as templates, as issuing states, or on titles and stamps. Plenty of the world's passports are pictured elsewhere; this tool is for new ones.

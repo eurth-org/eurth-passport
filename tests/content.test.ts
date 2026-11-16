@@ -51,7 +51,8 @@ describe('the guide', () => {
     expect(lastSection).toContain(SPECIMEN_WORD);
     expect(lastSection).toContain('cannot be switched off');
     expect(lastSection).toMatch(/No picture is kept/);
-    expect(lastSection).toMatch(/a photograph always has SPECIMEN printed across it/);
+    expect(lastSection).toMatch(/a photograph has SPECIMEN printed across it too unless you switch that one mark off/);
+    expect(lastSection).toMatch(/The overprint on the page itself is rule 1, and stays/);
     expect(lastSection).toMatch(/no real countries/i);
     expect(lastSection).toMatch(/no machine-readable zone/i);
     expect(lastSection).toContain(STRIP_TEXT.split(' · ').slice(0, 2).join(' · '));

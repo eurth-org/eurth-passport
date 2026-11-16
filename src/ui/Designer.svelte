@@ -61,11 +61,12 @@
   let ownOn = $state(false);
   let ownFoil = $state(false);
   let photo = $state<string | null>(null);
+  let photoMark = $state(true);
 
   const shown = $derived(cleanDesign(design));
   const arms = $derived(facts?.arms ?? null);
   // What is drawn beside the design: the profile's arms, and whatever the visitor brought.
-  const visit = $derived<RenderOptions>({ arms, emblem: ownOn ? ownEmblem : null, emblemFoil: ownFoil, photo });
+  const visit = $derived<RenderOptions>({ arms, emblem: ownOn ? ownEmblem : null, emblemFoil: ownFoil, photo, photoMark });
   const calendar = $derived(calendarOf(shown.calendar));
   const ref = $derived<DocumentRef>(tab === 'stamps' ? { kind: 'visaPage' } : { kind: tab });
   const svg = $derived(renderDocument(shown, ref, { ...visit, idPrefix: 'stage' }));
@@ -125,6 +126,7 @@
     ownEmblem = null;
     ownOn = false;
     photo = null;
+    photoMark = true;
     toast('Fresh papers.');
   }
 
@@ -284,7 +286,7 @@
           <input class="eu-input" bind:value={design.state.demonym} maxlength={limits.demonym} autocomplete="off" aria-describedby="demonym-help" />
           <span class="eu-help" id="demonym-help">What the people are called.</span>
         </label>
-        <PapersControls bind:holder={design.holder} bind:papers={design.papers} bind:card={design.card} bind:photo {calendar} showCard={tab !== 'data'} onnewholder={newHolder} />
+        <PapersControls bind:holder={design.holder} bind:papers={design.papers} bind:card={design.card} bind:photo bind:photoMark {calendar} showCard={tab !== 'data'} onnewholder={newHolder} />
       {/if}
     </form>
 

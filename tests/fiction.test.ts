@@ -34,7 +34,7 @@ import { DEFAULT_STATE_NAME, defaultDesign, defaultStamp, type Design } from '..
 import { generateHolder, generateNumber, givenNames, places, surnames } from '../src/passport/names';
 import { designFromProfile, nextSection, passportSection, readProfile, withPassport } from '../src/passport/profile';
 import { alpha2, alpha3, countryNames, travelCodes } from '../src/passport/realworld';
-import { armsUsed, describing, ownEmblemUsed, photoUsed, renderCardBack, renderCardFront, renderCover, renderDataPage, renderDocument, renderShare, sizes } from '../src/passport/render';
+import { armsUsed, describing, ownEmblemUsed, photoMarked, photoUsed, renderCardBack, renderCardFront, renderCover, renderDataPage, renderDocument, renderShare, sizes } from '../src/passport/render';
 import { templates } from '../src/passport/templates';
 import { drawAll, everyTextField, problems, randomDesign, specimenKinds } from './helpers/designs';
 import { ICAO_SPECIMEN_TD3, checkDigit, mrzFindings, mrzShape, mrzValid, textsOf } from './helpers/mrz';
@@ -302,6 +302,36 @@ describe('rule 2: no picture is kept', () => {
     expect(share).toContain('data-fiction="photo-specimen"');
   });
 
+  it('lets a visitor take the word off their own photograph, and nothing else: the page’s overprint has no switch', () => {
+    const design = defaultDesign();
+    for (const kind of ['data', 'cardFront'] as const) {
+      const { w, h } = kind === 'data' ? sizes.data : sizes.card;
+      const marked = renderDocument(design, { kind }, { photo: PHOTO });
+      const bare = renderDocument(design, { kind }, { photo: PHOTO, photoMark: false });
+      expect(bare, kind).toContain(`<image href="${PHOTO}"`);
+      expect(bare, kind).not.toContain('photo-specimen');
+      // Taking it off removes that one mark and changes nothing else on the page.
+      expect(marked.replace(/<g data-fiction="photo-specimen"[\s\S]*?<\/g>/, '').replace(', with SPECIMEN across it', ''), kind).toBe(bare);
+      expect(bare.endsWith(`${specimenOverprint(w, h)}</svg>`), kind).toBe(true);
+      expect(bare.match(/data-fiction="specimen"/g), kind).toHaveLength(1);
+    }
+    // Only a plain "no" takes it off. Anything else, or nothing, leaves it on.
+    for (const photoMark of [undefined, true, null, 0, '', 'false', 'off'] as unknown as boolean[]) {
+      expect(photoMarked({ photo: PHOTO, photoMark }), String(photoMark)).toBe(true);
+      expect(renderDataPage(design, { photo: PHOTO, photoMark }), String(photoMark)).toContain('data-fiction="photo-specimen"');
+    }
+    expect(photoMarked({ photo: PHOTO, photoMark: false })).toBe(false);
+    expect(photoMarked({ photoMark: true })).toBe(false);
+    // With no photograph the switch does nothing at all, and no option reaches the page's overprint.
+    for (const kind of ['data', 'cardFront', 'cardBack'] as const) {
+      const hopeful = { photoMark: false, specimen: false, overprint: false, mark: false } as Record<string, unknown>;
+      expect(renderDocument(design, { kind }, hopeful), kind).toBe(renderDocument(design, { kind }));
+      expect(renderDocument(design, { kind }, { ...hopeful, photo: PHOTO }), kind).toContain('data-fiction="specimen"');
+    }
+    expect(describeDocument(design, { kind: 'data' }, describing(design, { photo: PHOTO, photoMark: false }))).toContain('The portrait is a photograph the maker added. Printed on');
+    expect(describeDocument(design, { kind: 'data' }, describing(design, { photo: PHOTO, photoMark: false }))).toContain('overprinted SPECIMEN');
+  });
+
   it('falls back to its own drawing when what is offered as a photograph is anything else', () => {
     const design = defaultDesign();
     const plain = renderDataPage(design);
@@ -362,7 +392,7 @@ describe('rule 2: no picture is kept', () => {
   it('says in words when a photograph or an emblem of the maker’s own is on a document', () => {
     const design = defaultDesign();
     const told = describing(design, visitors);
-    expect(told).toEqual({ armsUsed: false, ownEmblem: true, photo: true });
+    expect(told).toEqual({ armsUsed: false, ownEmblem: true, photo: true, photoMarked: true });
     for (const kind of ['data', 'cardFront'] as const) expect(describeDocument(design, { kind }, told)).toContain('The portrait is a photograph the maker added, with SPECIMEN across it.');
     expect(describeDocument(design, { kind: 'data' })).toContain('a drawing, not a photograph');
     expect(renderDataPage(design, visitors)).toContain('<desc>Passport data page of the Republic of Teland, overprinted SPECIMEN.');

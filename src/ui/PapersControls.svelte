@@ -18,6 +18,7 @@
     papers = $bindable(),
     card = $bindable(),
     photo = $bindable(),
+    photoMark = $bindable(),
     calendar,
     showCard,
     onnewholder,
@@ -27,6 +28,8 @@
     card: Card;
     /** The visitor's own photograph, for this visit; null for one of the drawings. */
     photo: string | null;
+    /** SPECIMEN across that photograph: on, unless the visitor switches it off. */
+    photoMark: boolean;
     calendar: Calendar;
     /** The card's own titles are shown with the card, not with the passport. */
     showCard: boolean;
@@ -92,7 +95,7 @@
       {/each}
     </div>
   {/if}
-  <PhotoControls bind:photo />
+  <PhotoControls bind:photo bind:mark={photoMark} />
 </fieldset>
 
 {#if !photo}

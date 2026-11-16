@@ -28,7 +28,7 @@ Status: built, waiting for its door. What's built, what's next and what's not pl
 Four rules, none of them a setting, each held by its own tests in `tests/fiction.test.ts`:
 
 1. **SPECIMEN** is drawn last on every data page and card. The model has no field for it.
-2. **No picture is kept.** A portrait in a design is one of our own drawings, picked by id, and a profile's arms are used only if they are pure vector drawing. A visitor's own emblem or photograph is handed to the drawing beside the design for the visit, never inside it, so no link or profile can hold one; a photograph always has SPECIMEN across it.
+2. **No picture is kept.** A portrait in a design is one of our own drawings, picked by id, and a profile's arms are used only if they are pure vector drawing. A visitor's own emblem or photograph is handed to the drawing beside the design for the visit, never inside it, so no link or profile can hold one. A photograph has SPECIMEN across it too unless the visitor switches that one mark off; the page's own overprint is rule 1 and has no switch.
 3. **No real countries.** Not in the templates, and not as an issuing state, a title or a stamp's own line.
 4. **Nothing a machine could read.** A decorative strip that says "FICTIONAL · NOT A TRAVEL DOCUMENT" stands where a real passport has its machine-readable zone, and no text field can hold a line that looks like one.
 

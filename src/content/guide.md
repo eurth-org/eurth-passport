@@ -95,7 +95,7 @@ Real identity documents protect real people. They are how someone proves who the
 So Passport keeps a clear line, with four rules that cannot be changed:
 
 1. Every data page and card carries a SPECIMEN overprint, and it cannot be switched off.
-2. No picture is kept. The portraits are the tool's own drawings. You may add a photograph or an emblem of your own for one visit: it stays in your browser, it is never in the link or the profile file, and a photograph always has SPECIMEN printed across it.
+2. No picture is kept. The portraits are the tool's own drawings. You may add a photograph or an emblem of your own for one visit: it stays in your browser, it is never in the link or the profile file, and a photograph has SPECIMEN printed across it too unless you switch that one mark off. The overprint on the page itself is rule 1, and stays.
 3. There are no real countries in the templates, and the tool declines to print a real country's name as the issuing state, as a document's title or on a stamp.
 4. There is no machine-readable zone. Where a real passport has one, Passport draws a decorative strip that reads "FICTIONAL · NOT A TRAVEL DOCUMENT", with the caption "Decorative strip. Not machine readable."
 
